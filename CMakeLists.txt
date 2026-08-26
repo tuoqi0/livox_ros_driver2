@@ -1,4 +1,23 @@
 # judge which cmake codes to use 
+# Derive what build.sh used to pass by hand, so a plain
+#   colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=release
+# works. build.sh also copied package_ROS2.xml over package.xml and launch_ROS2
+# into launch/, and wiped the workspace build/ and install/ on the way; the
+# package.xml is now committed and the launch directory is installed from its
+# real name, so none of that is needed.
+if(NOT DEFINED ROS_EDITION OR ROS_EDITION STREQUAL "")
+  if(DEFINED ENV{ROS_VERSION} AND "$ENV{ROS_VERSION}" STREQUAL "1")
+    set(ROS_EDITION "ROS1")
+  else()
+    set(ROS_EDITION "ROS2")
+  endif()
+  message(STATUS "ROS_EDITION not given, detected ${ROS_EDITION}")
+endif()
+if(NOT DEFINED DISTRO_ROS OR DISTRO_ROS STREQUAL "")
+  set(DISTRO_ROS "$ENV{ROS_DISTRO}")
+  message(STATUS "DISTRO_ROS not given, detected '${DISTRO_ROS}'")
+endif()
+
 if(ROS_EDITION STREQUAL "ROS1")
 
   # Copyright(c) 2019 livoxtech limited.
@@ -90,8 +109,18 @@ if(ROS_EDITION STREQUAL "ROS1")
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
 
-  ## make sure the livox_lidar_sdk_static library is installed
-  find_library(LIVOX_LIDAR_SDK_LIBRARY  liblivox_lidar_sdk_static.a    /usr/local/lib)
+  ## The SDK built in this workspace wins over any system-wide install: the
+  ## exported package config resolves to the copy this source tree ships, so the
+  ## driver never compiles against an older /usr/local header set.
+  find_package(Livox-SDK2 QUIET)
+  if(Livox-SDK2_FOUND)
+    set(LIVOX_LIDAR_SDK_LIBRARY ${Livox-SDK2_STATIC_LIBRARY})
+    set(LIVOX_LIDAR_SDK_INCLUDE_DIR ${Livox-SDK2_INCLUDE_DIRS})
+  else()
+    find_library(LIVOX_LIDAR_SDK_LIBRARY NAMES livox_lidar_sdk_static)
+    find_path(LIVOX_LIDAR_SDK_INCLUDE_DIR NAMES livox_lidar_api.h)
+  endif()
+  message(STATUS "livox sdk: ${LIVOX_LIDAR_SDK_LIBRARY} (headers ${LIVOX_LIDAR_SDK_INCLUDE_DIR})")
 
   ## PCL library
   link_directories(${PCL_LIBRARY_DIRS})
@@ -245,13 +274,17 @@ else(ROS_EDITION STREQUAL "ROS2")
     LIBRARY_NAME ${PROJECT_NAME}
   )
 
-  ## make sure the livox_lidar_sdk_shared library is installed
-  find_library(LIVOX_LIDAR_SDK_LIBRARY liblivox_lidar_sdk_shared.so /usr/local/lib REQUIRED)
-
-  ##
-  find_path(LIVOX_LIDAR_SDK_INCLUDE_DIR
-    NAMES "livox_lidar_api.h" "livox_lidar_def.h"
-    REQUIRED)
+  ## The SDK the workspace ships, not whatever sits in /usr/local. Searching
+  ## Same as the ROS 1 branch: the workspace SDK is authoritative.
+  find_package(Livox-SDK2 QUIET)
+  if(Livox-SDK2_FOUND)
+    set(LIVOX_LIDAR_SDK_LIBRARY ${Livox-SDK2_SHARED_LIBRARY})
+    set(LIVOX_LIDAR_SDK_INCLUDE_DIR ${Livox-SDK2_INCLUDE_DIRS})
+  else()
+    find_library(LIVOX_LIDAR_SDK_LIBRARY NAMES livox_lidar_sdk_shared REQUIRED)
+    find_path(LIVOX_LIDAR_SDK_INCLUDE_DIR NAMES livox_lidar_api.h REQUIRED)
+  endif()
+  message(STATUS "livox sdk: ${LIVOX_LIDAR_SDK_LIBRARY} (headers ${LIVOX_LIDAR_SDK_INCLUDE_DIR})")
 
   ## PCL library
   link_directories(${PCL_LIBRARY_DIRS})
@@ -279,10 +312,12 @@ else(ROS_EDITION STREQUAL "ROS2")
     src/call_back/livox_lidar_callback.cpp
   )
 
-  target_include_directories(${PROJECT_NAME} PRIVATE ${livox_sdk_INCLUDE_DIRS})
+  target_include_directories(${PROJECT_NAME} PRIVATE ${LIVOX_LIDAR_SDK_INCLUDE_DIR})
 
   # get include directories of custom msg headers
-  if(DISTRO_ROS STREQUAL "humble" OR DISTRO_ROS STREQUAL "jazzy")
+  # Humble onwards. Tested by existence rather than by distro name, so a distro
+  # newer than this file does not silently fall into the pre-Humble branch.
+  if(COMMAND rosidl_get_typesupport_target)
     rosidl_get_typesupport_target(cpp_typesupport_target
     ${LIVOX_INTERFACES} "rosidl_typesupport_cpp")
     target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")

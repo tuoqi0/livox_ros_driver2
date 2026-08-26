@@ -11,6 +11,11 @@
   <build_depend>rosidl_default_generators</build_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>
 
+  <!-- Builds first, so its install dir reaches CMAKE_PREFIX_PATH and the
+       driver links the SDK this workspace ships. Without it CMake falls
+       through to /usr/local, an older SDK missing the double-echo
+       symbols this driver needs. -->
+  <depend>Livox-SDK2</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
   <depend>std_msgs</depend>
