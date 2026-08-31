@@ -64,7 +64,7 @@ class LidarPubHandler {
     {0, 0, 0},
     {
       {1, 0, 0},
-      {0, 1, 1},
+      {0, 1, 0},   
       {0, 0, 1}
     }
   };
@@ -106,6 +106,9 @@ class PubHandler {
                                              LivoxLidarEthernetPacket *data, void *client_data);
   
   static bool GetLidarId(LidarProtoType lidar_type, uint32_t handle, uint32_t& id);
+  // Puts the IMU in the same frame as the point cloud, which the point path
+  // already rotates by the configured extrinsic.
+  void RotateImu(uint32_t handle, const RawImuPoint* raw, ImuData& out);
   static uint64_t GetEthPacketTimestamp(uint8_t timestamp_type, uint8_t* time_stamp, uint8_t size);
 
   PointCloudsCallback points_callback_;

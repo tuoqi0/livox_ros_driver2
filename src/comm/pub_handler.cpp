@@ -23,6 +23,8 @@
 //
 
 #include "pub_handler.h"
+#include "imu_extrinsic.h"
+
 #include "livox_lidar_api.h"
 #include <cstdlib>
 #include <chrono>
@@ -84,6 +86,35 @@ void PubHandler::AddLidarsExtParam(LidarExtParameter& lidar_param) {
   lidar_extrinsics_[id] = lidar_param;
 }
 
+void PubHandler::RotateImu(uint32_t handle, const RawImuPoint* raw, ImuData& out) {
+  out.gyro_x = raw->gyro_x;
+  out.gyro_y = raw->gyro_y;
+  out.gyro_z = raw->gyro_z;
+  out.acc_x = raw->acc_x;
+  out.acc_y = raw->acc_y;
+  out.acc_z = raw->acc_z;
+
+  uint32_t id = 0;
+  if (!GetLidarId(LidarProtoType::kLivoxLidarType, handle, id)) return;
+  auto it = lidar_extrinsics_.find(id);
+  if (it == lidar_extrinsics_.end()) return;
+  const auto& p = it->second.param;
+  if (p.roll == 0.0f && p.pitch == 0.0f && p.yaw == 0.0f) return;
+
+  const ImuRotation m = MakeImuRotation(p.roll, p.pitch, p.yaw);
+  const float gyro_in[3] = {raw->gyro_x, raw->gyro_y, raw->gyro_z};
+  const float acc_in[3] = {raw->acc_x, raw->acc_y, raw->acc_z};
+  float gyro_out[3], acc_out[3];
+  ApplyImuRotation(m, gyro_in, gyro_out);
+  ApplyImuRotation(m, acc_in, acc_out);
+  out.gyro_x = gyro_out[0];
+  out.gyro_y = gyro_out[1];
+  out.gyro_z = gyro_out[2];
+  out.acc_x = acc_out[0];
+  out.acc_y = acc_out[1];
+  out.acc_z = acc_out[2];
+}
+
 void PubHandler::ClearAllLidarsExtrinsicParams() {
   std::unique_lock<std::mutex> lock(packet_mutex_);
   lidar_extrinsics_.clear();
@@ -116,12 +147,7 @@ void PubHandler::OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t d
       imu_data.handle = handle;
       imu_data.time_stamp = GetEthPacketTimestamp(data->time_type,
                                                   data->timestamp, sizeof(data->timestamp));
-      imu_data.gyro_x = imu->gyro_x;
-      imu_data.gyro_y = imu->gyro_y;
-      imu_data.gyro_z = imu->gyro_z;
-      imu_data.acc_x = imu->acc_x;
-      imu_data.acc_y = imu->acc_y;
-      imu_data.acc_z = imu->acc_z;
+      self->RotateImu(handle, imu, imu_data);
       self->imu_callback_(&imu_data, self->imu_client_data_);
     }
     return;
@@ -129,7 +155,7 @@ void PubHandler::OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t d
   RawPacket packet = {};
   packet.handle = handle;
   packet.lidar_type = LidarProtoType::kLivoxLidarType;
-  packet.extrinsic_enable = false; 
+  packet.extrinsic_enable = false;  
   if (dev_type == LivoxLidarDeviceType::kLivoxLidarTypeIndustrialHAP) {
     packet.line_num = kLineNumberHAP;
   } else if (dev_type == LivoxLidarDeviceType::kLivoxLidarTypeMid360||dev_type==LivoxLidarDeviceType::kLivoxLidarTypeMid360s) {

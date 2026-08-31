@@ -369,3 +369,14 @@ else(ROS_EDITION STREQUAL "ROS2")
   )
 
 endif()
+
+## Testing ##
+if(BUILD_TESTING AND ${ROS_EDITION} STREQUAL "ROS2")
+  find_package(ament_cmake_gtest QUIET)
+  if(ament_cmake_gtest_FOUND)
+    ament_add_gtest(test_imu_extrinsic test/test_imu_extrinsic.cpp)
+    if(TARGET test_imu_extrinsic)
+      target_include_directories(test_imu_extrinsic PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    endif()
+  endif()
+endif()
