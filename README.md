@@ -616,7 +616,8 @@ PTP/GPS 模式保留设备的纳秒时间戳。CustomMsg 的 `timebase` 是帧�
 点的绝对时刻，`offset_time` 是相对它的纳秒差；PointCloud2 的 `timestamp`
 是 FLOAT64 绝对纳秒数，双精度不能无损表达当前纪元的每一个纳秒。
 Mid-360 协议的 `time_interval` 是包内末点减首点；N 个样本有 N-1 个间隔。
-输出按绝对采样时间稳定排序，同一时刻的多回波保持原顺序。
+输出按绝对采样时间稳定排序，同一时刻的多回波保持原顺序。非 IMU 包的
+`dot_num=0` 时在入口丢弃，不进入点云工作队列；IMU 解码保持原规则。
 
 NoSync 模式目前仍使用逐包的主机接收时间，网络延迟会进入点云/IMU 的
 相对时序；它不能替代 PTP，也不能保证与外接 IMU 同步。帧内排序不负责
@@ -630,15 +631,20 @@ NoSync 模式目前仍使用逐包的主机接收时间，网络延迟会进入�
 `cmdline_input_bd_code` 也不负责 ROS 2 的设备隔离。`lidar_configs` 用于设备
 配置，不应当作 SDK 的 IP 白名单。
 
-在工作区根目录编译与执行离线合同（不初始化 SDK、不访问雷达）：
+驱动先准备设备配置与外参、注册设备通知，再初始化 SDK，避免初始化期间
+首次设备通知被遗漏。初始化返回失败时注销本次通知回调；这不等于 SDK
+内部已完成部分初始化资源的清理。
+
+在工作区根目录编译与执行离线合同（不执行真实 SDK 初始化、不访问雷达）：
 
 ```bash
 colcon build --packages-up-to livox_ros_driver2 --cmake-args -DBUILD_TESTING=ON
 source install/setup.bash
-colcon test --packages-select livox_ros_driver2 --ctest-args -R '^(test_imu_extrinsic|test_packet|test_queue_exit|test_ros_messages)$' --output-on-failure
+colcon test --packages-select livox_ros_driver2 --ctest-args -R '^(test_imu_extrinsic|test_packet|test_queue_exit|test_ros_messages|test_startup)$' --output-on-failure
 colcon test-result --verbose
 ```
 
-这些测试调用真实包回调、点转换、SPSC 队列和 ROS 消息打包代码；SDK
-observer 注册与退出仅在测试进程中替换。它们不代表实机同步或 SLAM 精度
-验收，测试结束也不需要启动驱动进程。
+这些测试调用真实包回调、点转换、SPSC 队列、ROS 消息打包与驱动启动代码；
+SDK 注册、命令发送和初始化/退出仅在相应测试进程中替换。启动测试在 SDK
+初始化返回前触发一次设备通知，并延后执行命令应答，检查配置与采样状态。
+它们不代表实机同步或 SLAM 精度验收，测试结束也不需要启动驱动进程。

@@ -138,12 +138,6 @@ bool LdsLidar::InitLivoxLidar() {
     std::cout << "failed to parse user-defined config" << std::endl;
   }
 
-  // SDK initialization
-  if (!LivoxLidarSdkInit(path_.c_str())) {
-    std::cout << "Failed to init livox lidar sdk." << std::endl;
-    return false;
-  }
-
   // fill in lidar devices
   for (auto& config : user_configs) {
     uint8_t index = 0;
@@ -179,7 +173,14 @@ bool LdsLidar::InitLivoxLidar() {
     pub_handler().AddLidarsExtParam(lidar_param);
   }
 
+  // SDK initialization starts discovery threads. Prepare device metadata and
+  // register before that first notification, which the SDK emits only once.
   SetLivoxLidarInfoChangeCallback(LivoxLidarCallback::LidarInfoChangeCallback, g_lds_ldiar);
+  if (!LivoxLidarSdkInit(path_.c_str())) {
+    SetLivoxLidarInfoChangeCallback(nullptr, nullptr);
+    std::cout << "Failed to init livox lidar sdk." << std::endl;
+    return false;
+  }
   return true;
 }
 

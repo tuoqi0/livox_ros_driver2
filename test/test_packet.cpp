@@ -143,7 +143,7 @@ std::vector<uint8_t> makeWirePacket(uint8_t type, uint8_t time_type,
   packet->data_type = type;
   packet->time_type = time_type;
   std::memcpy(packet->timestamp, &stamp, sizeof(stamp));
-  std::memcpy(packet->data, data.data(), data.size());
+  if (!data.empty()) std::memcpy(packet->data, data.data(), data.size());
   return bytes;
 }
 
@@ -480,4 +480,50 @@ TEST_CASE("LivoxPacket.SourceDeinitJoinsItsRawWorkerBeforeSdkUninit") {
   CHECK((handler.is_quit_.load()));
   CHECK((handler.point_process_thread_ == nullptr));
   CHECK((observer == nullptr));
+}
+
+TEST_CASE("LivoxPacket.ZeroPointNonImuPacketsNeverEnterTheWorkerQueue") {
+  Fixture fixture;
+  for (uint8_t type : point_types) {
+    for (uint8_t mode : {uint8_t(kTimestampTypeNoSync),
+                         uint8_t(kTimestampTypeGptpOrPtp),
+                         uint8_t(kTimestampTypeGps)}) {
+      CAPTURE(type);
+      CAPTURE(mode);
+      const auto data = makePointData(type, 0);
+      auto wire = makeWirePacket(type, mode, kEpochNs, 0, 9500, data);
+      fixture.deliver(wire);
+      std::lock_guard<std::mutex> lock(fixture.handler.packet_mutex_);
+      CHECK((fixture.handler.raw_packet_queue_.empty()));
+      CHECK((fixture.handler.lidar_process_handlers_.empty()));
+      CHECK((fixture.handler.last_pub_times_.empty()));
+      CHECK((fixture.frames.empty()));
+      CHECK((fixture.imus.empty()));
+    }
+  }
+  fixture.points(kEpochNs, 1, 0);
+  const RawPacket packet = fixture.pop();
+  CHECK((packet.point_num == 1));
+  CHECK((packet.time_stamp == kEpochNs));
+}
+
+TEST_CASE("LivoxPacket.ZeroDotHeaderDoesNotChangeImuDecoding") {
+  Fixture fixture;
+  LivoxLidarImuRawPoint value{1.25f, -2.5f, 0.125f, -0.75f, 0.5f, 1.0f};
+  std::vector<uint8_t> data(sizeof(value));
+  std::memcpy(data.data(), &value, sizeof(value));
+  auto wire = makeWirePacket(kLivoxLidarImuData, kTimestampTypeGptpOrPtp,
+                            kEpochNs, 0, 0, data);
+  fixture.deliver(wire);
+  REQUIRE((fixture.imus.size() == 1));
+  const ImuData& imu = fixture.imus.front();
+  CHECK((imu.handle == kFirstHandle));
+  CHECK((imu.time_stamp == kEpochNs));
+  CHECK((imu.gyro_x == 1.25f));
+  CHECK((imu.gyro_y == -2.5f));
+  CHECK((imu.gyro_z == 0.125f));
+  CHECK((imu.acc_x == -0.75f));
+  CHECK((imu.acc_y == 0.5f));
+  CHECK((imu.acc_z == 1.0f));
+  CHECK((fixture.handler.raw_packet_queue_.empty()));
 }

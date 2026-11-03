@@ -158,6 +158,10 @@ void PubHandler::OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t d
     }
     return;
   }
+  // Point-cloud packets without samples must not enter the worker queue.
+  if (data->dot_num == 0) {
+    return;
+  }
   RawPacket packet = {};
   packet.handle = handle;
   packet.lidar_type = LidarProtoType::kLivoxLidarType;

@@ -376,7 +376,7 @@ if(BUILD_TESTING AND ${ROS_EDITION} STREQUAL "ROS2")
   include(${robot_core_DIR}/robot_coreTests.cmake)
   robot_core_add_test(test_imu_extrinsic test/test_imu_extrinsic.cpp)
   target_include_directories(test_imu_extrinsic PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-  foreach(contract IN ITEMS packet queue_exit ros_messages)
+  foreach(contract IN ITEMS packet queue_exit ros_messages startup)
     robot_core_add_test(test_${contract} test/test_${contract}.cpp)
     target_include_directories(test_${contract} PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
