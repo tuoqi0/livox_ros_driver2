@@ -26,6 +26,8 @@
 #define LIVOX_DRIVER_PUB_HANDLER_H_
 
 #include <atomic>
+#include <chrono>
+#include <cstddef>
 #include <cstring>
 #include <condition_variable> // std::condition_variable
 #include <deque>
@@ -59,7 +61,10 @@ class LidarPubHandler {
   void ProcessCartesianLowPoint(RawPacket & pkt);
   void ProcessSphericalPoint(RawPacket & pkt);
   void ProcessDoubleEchoPoint(RawPacket& pkt);
+  void AppendPoints(const PointXyzlt* points, size_t count);
   std::vector<PointXyzlt> points_clouds_;
+  uint64_t first_point_time_ = 0;
+  uint64_t recent_point_time_ = 0;
   ExtParameterDetailed extrinsic_ = {
     {0, 0, 0},
     {
@@ -76,7 +81,7 @@ class PubHandler {
  public:
   using PointCloudsCallback = std::function<void(PointFrame*, void *)>;
   using ImuDataCallback = std::function<void(ImuData*, void*)>;
-  using TimePoint = std::chrono::high_resolution_clock::time_point;
+  using TimePoint = std::chrono::steady_clock::time_point;
 
   PubHandler() {}
 
@@ -100,7 +105,7 @@ class PubHandler {
   std::condition_variable packet_condition_;
 
   //publish callback
-  void CheckTimer(uint32_t id);
+  void CheckTimer(uint32_t id, bool timestamp_sync);
   void PublishPointCloud();
   static void OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t dev_type,
                                              LivoxLidarEthernetPacket *data, void *client_data);
@@ -125,12 +130,11 @@ class PubHandler {
   uint64_t publish_interval_ = 100000000; //100 ms
   uint64_t publish_interval_tolerance_ = 100000000; //100 ms
   uint64_t publish_interval_ms_ = 100; //100 ms
-  TimePoint last_pub_time_;
+  std::map<uint32_t, TimePoint> last_pub_times_;
 
   std::map<uint32_t, std::unique_ptr<LidarPubHandler>> lidar_process_handlers_;
   std::map<uint32_t, std::vector<PointXyzlt>> points_;
   std::map<uint32_t, LidarExtParameter> lidar_extrinsics_;
-  static std::atomic<bool> is_timestamp_sync_;
   uint16_t lidar_listen_id_ = 0;
 };
 

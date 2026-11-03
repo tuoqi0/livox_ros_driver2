@@ -74,7 +74,9 @@ void Lds::ResetLds(uint8_t data_src) {
 }
 
 void Lds::RequestExit() {
-  request_exit_ = true;
+  request_exit_.store(true, std::memory_order_release);
+  pcd_semaphore_.Signal();
+  imu_semaphore_.Signal();
 }
 
 bool Lds::IsAllQueueEmpty() {

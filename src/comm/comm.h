@@ -35,6 +35,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <atomic>
 
 #include "lidar_imu_data_queue.h"
 
@@ -198,16 +199,19 @@ typedef struct {
   uint8_t data_type;
   uint8_t line_num;
   uint64_t time_stamp;
-  uint64_t point_interval;
+  uint64_t point_duration;  // first-to-last point span, ns
+  bool timestamp_sync;     // mode of this packet, not another device
   std::vector<uint8_t> raw_data;
 } RawPacket;
 
 typedef struct {
-  StoragePacket *storage_packet;
-  volatile uint32_t rd_idx;
-  volatile uint32_t wr_idx;
-  uint32_t mask;
-  uint32_t size; /**< must be power of 2. */
+  // Init/reset/deinit require stopped producer and consumer. The first
+  // producer publishes the initialized slots and immutable dimensions last.
+  std::atomic<StoragePacket*> storage_packet{nullptr};
+  std::atomic<uint32_t> rd_idx{0};
+  std::atomic<uint32_t> wr_idx{0};
+  uint32_t mask{0};
+  uint32_t size{0}; /**< must be power of 2. */
 } LidarDataQueue;
 
 /*****************************/
@@ -278,7 +282,7 @@ typedef struct {
   //   uint8_t handle : 4;  // handle for LivoxLidarType::kIndustryLidarType
   // };
   uint8_t data_src;                  /**< From raw lidar or livox file. */
-  volatile LidarConnectState connect_state;
+  std::atomic<LidarConnectState> connect_state{kConnectStateOff};
   // DeviceInfo info;
 
   LidarDataQueue data;

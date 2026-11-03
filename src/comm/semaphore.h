@@ -37,13 +37,14 @@ class Semaphore {
   void Signal();
   void Wait();
   int GetCount() {
+    std::lock_guard<std::mutex> lock(mutex_);
     return count_;
   }
 
  private:
   std::mutex mutex_;
   std::condition_variable cv_;
-  volatile int count_;
+  int count_;
 };
 
 } // namespace livox_ros

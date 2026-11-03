@@ -30,10 +30,21 @@
 #include <chrono>
 #include <iostream>
 #include <limits>
+#include <algorithm>
 
 namespace livox_ros {
 
-std::atomic<bool> PubHandler::is_timestamp_sync_;
+
+namespace {
+uint64_t PointTimestamp(const RawPacket& packet, uint32_t index) {
+  // A one-point packet has no inter-point gap. Multiply before division so
+  // integer rounding does not shorten the declared first-to-last span.
+  const uint64_t elapsed = packet.point_num > 1
+      ? static_cast<uint64_t>(index) * packet.point_duration / (packet.point_num - 1)
+      : 0;
+  return packet.time_stamp + elapsed;
+}
+} // namespace
 
 PubHandler &pub_handler() {
   static PubHandler handler;
@@ -62,6 +73,7 @@ void PubHandler::Uninit() {
 
 void PubHandler::RequestExit() {
   is_quit_.store(true);
+  packet_condition_.notify_one();
 }
 
 void PubHandler::SetPointCloudConfig(const double publish_freq) {
@@ -133,12 +145,6 @@ void PubHandler::OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t d
     return;
   }
 
-  if (data->time_type != kTimestampTypeNoSync) {
-    is_timestamp_sync_.store(true);
-  } else {
-    is_timestamp_sync_.store(false);
-  }
-
   if (data->data_type == kLivoxLidarImuData) {
     if (self->imu_callback_) {
       RawImuPoint* imu = (RawImuPoint*) data->data;
@@ -165,7 +171,9 @@ void PubHandler::OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t d
   }
   packet.data_type = data->data_type;
   packet.point_num = data->dot_num;
-  packet.point_interval = data->time_interval * 100 / data->dot_num;  //ns
+  // The wire interval spans the first and last points, hence N-1 gaps.
+  packet.point_duration = static_cast<uint64_t>(data->time_interval) * 100;
+  packet.timestamp_sync = data->time_type != kTimestampTypeNoSync;
   packet.time_stamp = GetEthPacketTimestamp(data->time_type,
                                             data->timestamp, sizeof(data->timestamp));
   uint32_t length = data->length - sizeof(LivoxLidarEthernetPacket) + 1;
@@ -187,9 +195,9 @@ void PubHandler::PublishPointCloud() {
   return;
 }
 
-void PubHandler::CheckTimer(uint32_t id) {
+void PubHandler::CheckTimer(uint32_t id, bool timestamp_sync) {
 
-  if (PubHandler::is_timestamp_sync_.load()) { // Enable time synchronization
+  if (timestamp_sync) { // Use the mode carried with the points being processed
     auto& process_handler = lidar_process_handlers_[id];
     uint64_t recent_time_ms = process_handler->GetRecentTimeStamp() / kRatioOfMsToNs;
     if ((recent_time_ms % publish_interval_ms_ != 0) || recent_time_ms == 0) {
@@ -218,34 +226,30 @@ void PubHandler::CheckTimer(uint32_t id) {
       PublishPointCloud();
       frame_.lidar_num = 0;
     }
-  } else { // Disable time synchronization
-    auto now_time = std::chrono::high_resolution_clock::now();
-    //First Set
-    static bool first = true;
-    if (first) {
-      last_pub_time_ = now_time;
-      first = false;
+  } else { // Receive-time cadence, independently for this device
+    const auto now_time = std::chrono::steady_clock::now();
+    const auto inserted = last_pub_times_.emplace(id, now_time);
+    if (inserted.second) {
       return;
     }
-    if (now_time - last_pub_time_ < std::chrono::nanoseconds(publish_interval_)) {
+    auto& last_pub_time = inserted.first->second;
+    if (now_time - last_pub_time < std::chrono::nanoseconds(publish_interval_)) {
       return;
     }
-    last_pub_time_ += std::chrono::nanoseconds(publish_interval_);
-    for (auto &process_handler : lidar_process_handlers_) {
-      frame_.base_time[frame_.lidar_num] = process_handler.second->GetLidarBaseTime();
-      uint32_t handle = process_handler.first;
-      points_[handle].clear();
-      process_handler.second->GetLidarPointClouds(points_[handle]);
-      if (points_[handle].empty()) {
-        continue;
-      }
-      PointPacket& lidar_point = frame_.lidar_point[frame_.lidar_num];
-      lidar_point.lidar_type = LidarProtoType::kLivoxLidarType;  // TODO:
-      lidar_point.handle = handle;
-      lidar_point.points_num = points_[handle].size();
-      lidar_point.points = points_[handle].data();
-      frame_.lidar_num++;
+    last_pub_time += std::chrono::nanoseconds(publish_interval_);
+    auto& process_handler = lidar_process_handlers_[id];
+    frame_.base_time[frame_.lidar_num] = process_handler->GetLidarBaseTime();
+    points_[id].clear();
+    process_handler->GetLidarPointClouds(points_[id]);
+    if (points_[id].empty()) {
+      return;
     }
+    PointPacket& lidar_point = frame_.lidar_point[frame_.lidar_num];
+    lidar_point.lidar_type = LidarProtoType::kLivoxLidarType;
+    lidar_point.handle = id;
+    lidar_point.points_num = points_[id].size();
+    lidar_point.points = points_[id].data();
+    frame_.lidar_num++;
     PublishPointCloud();
     frame_.lidar_num = 0;
   }
@@ -276,7 +280,7 @@ void PubHandler::RawDataProcess() {
         lidar_process_handlers_[id]->SetLidarsExtParam(lidar_extrinsics_[id]);
     }
     process_handler->PointCloudProcess(raw_data);
-    CheckTimer(id);
+    CheckTimer(id, raw_data.timestamp_sync);
   }
 }
 
@@ -300,32 +304,68 @@ uint64_t PubHandler::GetEthPacketTimestamp(uint8_t timestamp_type, uint8_t* time
   return std::chrono::high_resolution_clock::now().time_since_epoch().count();
 }
 
+
 /*******************************/
 /*  LidarPubHandler Definitions*/
 LidarPubHandler::LidarPubHandler() : is_set_extrinsic_params_(false) {}
 
 uint64_t LidarPubHandler::GetLidarBaseTime() {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (points_clouds_.empty()) {
     return 0;
   }
-  return points_clouds_.at(0).offset_time;
+  return first_point_time_;
 }
 
 void LidarPubHandler::GetLidarPointClouds(std::vector<PointXyzlt>& points_clouds) {
   std::lock_guard<std::mutex> lock(mutex_);
   points_clouds.swap(points_clouds_);
+  // Keep the existing swap contract if a caller supplied nonempty storage.
+  // The normal drain passes an empty vector, so these bounds reset in O(1).
+  first_point_time_ = recent_point_time_ = 0;
+  for (size_t i = 0; i < points_clouds_.size(); ++i) {
+    const uint64_t stamp = points_clouds_[i].offset_time;
+    if (i == 0) {
+      first_point_time_ = recent_point_time_ = stamp;
+    } else {
+      first_point_time_ = std::min(first_point_time_, stamp);
+      recent_point_time_ = std::max(recent_point_time_, stamp);
+    }
+  }
+  // UDP arrival order is not acquisition order. Preserve equal-time echoes.
+  std::stable_sort(points_clouds.begin(), points_clouds.end(),
+      [](const PointXyzlt& a, const PointXyzlt& b) {
+        return a.offset_time < b.offset_time;
+      });
 }
 
 uint64_t LidarPubHandler::GetRecentTimeStamp() {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (points_clouds_.empty()) {
     return 0;
   }
-  return points_clouds_.back().offset_time;
+  return recent_point_time_;
 }
 
 uint32_t LidarPubHandler::GetLidarPointCloudsSize() {
   std::lock_guard<std::mutex> lock(mutex_);
   return points_clouds_.size();
+}
+
+// Cache bounds as points arrive: CheckTimer is called per UDP packet and must
+// not rescan the entire accumulated frame for each packet.
+void LidarPubHandler::AppendPoints(const PointXyzlt* points, size_t count) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  for (size_t i = 0; i < count; ++i) {
+    const uint64_t stamp = points[i].offset_time;
+    if (points_clouds_.empty()) {
+      first_point_time_ = recent_point_time_ = stamp;
+    } else {
+      first_point_time_ = std::min(first_point_time_, stamp);
+      recent_point_time_ = std::max(recent_point_time_, stamp);
+    }
+    points_clouds_.push_back(points[i]);
+  }
 }
 
 //convert to standard format and extrinsic compensate
@@ -414,9 +454,8 @@ void LidarPubHandler::ProcessCartesianHighPoint(RawPacket & pkt) {
     point.intensity = raw[i].reflectivity;
     point.line = i % pkt.line_num;
     point.tag = raw[i].tag;
-    point.offset_time = pkt.time_stamp + i * pkt.point_interval;
-    std::lock_guard<std::mutex> lock(mutex_);
-    points_clouds_.push_back(point);
+    point.offset_time = PointTimestamp(pkt, i);
+    AppendPoints(&point, 1);
   }
 }
 
@@ -442,9 +481,8 @@ void LidarPubHandler::ProcessCartesianLowPoint(RawPacket & pkt) {
     point.intensity = raw[i].reflectivity;
     point.line = i % pkt.line_num;
     point.tag = raw[i].tag;
-    point.offset_time = pkt.time_stamp + i * pkt.point_interval;
-    std::lock_guard<std::mutex> lock(mutex_);
-    points_clouds_.push_back(point);
+    point.offset_time = PointTimestamp(pkt, i);
+    AppendPoints(&point, 1);
   }
 }
 
@@ -477,9 +515,8 @@ void LidarPubHandler::ProcessSphericalPoint(RawPacket& pkt) {
     point.intensity = raw[i].reflectivity;
     point.line = i % pkt.line_num;
     point.tag = raw[i].tag;
-    point.offset_time = pkt.time_stamp + i * pkt.point_interval;
-    std::lock_guard<std::mutex> lock(mutex_);
-    points_clouds_.push_back(point);
+    point.offset_time = PointTimestamp(pkt, i);
+    AppendPoints(&point, 1);
   }
 }
 
@@ -523,15 +560,14 @@ void LidarPubHandler::ProcessDoubleEchoPoint(RawPacket& pkt)
     point1.intensity = raw[i].reflectivity1;
     point1.line = i % pkt.line_num;
     point1.tag = raw[i].tag1;
-    point1.offset_time = pkt.time_stamp + i * pkt.point_interval;
+    point1.offset_time = PointTimestamp(pkt, i);
 
     point2.intensity = raw[i].reflectivity2;
     point2.line = i % pkt.line_num;
     point2.tag = raw[i].tag2;
-    point2.offset_time = pkt.time_stamp + i * pkt.point_interval;
-    std::lock_guard<std::mutex> lock(mutex_);
-    points_clouds_.push_back(point1);
-    points_clouds_.push_back(point2);
+    point2.offset_time = PointTimestamp(pkt, i);
+    const PointXyzlt echoes[] = {point1, point2};
+    AppendPoints(echoes, 2);
   }
 }
 } // namespace livox_ros

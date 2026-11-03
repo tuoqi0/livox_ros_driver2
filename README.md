@@ -604,3 +604,41 @@ Please add '/usr/local/lib' to the env LD_LIBRARY_PATH.
   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
   source ~/.bashrc
   ```
+
+
+## ROS 2 数据时序与离线检查
+
+驱动的 IMU 输出沿用设备单位：角速度 rad/s，加速度 g。使用内置 IMU
+时，Keel YAML 的 `mapping.acc_norm` 应为 `1.0`；外接 IMU 的话题、单位和
+外参应按该传感器单独配置。
+
+PTP/GPS 模式保留设备的纳秒时间戳。CustomMsg 的 `timebase` 是帧内最早
+点的绝对时刻，`offset_time` 是相对它的纳秒差；PointCloud2 的 `timestamp`
+是 FLOAT64 绝对纳秒数，双精度不能无损表达当前纪元的每一个纳秒。
+Mid-360 协议的 `time_interval` 是包内末点减首点；N 个样本有 N-1 个间隔。
+输出按绝对采样时间稳定排序，同一时刻的多回波保持原顺序。
+
+NoSync 模式目前仍使用逐包的主机接收时间，网络延迟会进入点云/IMU 的
+相对时序；它不能替代 PTP，也不能保证与外接 IMU 同步。帧内排序不负责
+恢复已经发布过的跨帧迟到包，也不能让 uint32 offset 表达 4.295 秒以上的
+时间跨度。设备重启和切换同步源时，应重新启动本次采集并检查时间线。
+
+`multi_topic=0` 会把所有发布设备放进同一对话题，适用于单设备输入；
+单雷达 LIO 不能直接消费两台雷达混在一起的消息。多设备采集请用
+`multi_topic=1`，按 `ros2 topic list` 列出的 IP 后缀话题选择同一台设备的
+点云和 IMU。`lidar_id` 仅8位，不能用它证明录包只有一台设备；
+`cmdline_input_bd_code` 也不负责 ROS 2 的设备隔离。`lidar_configs` 用于设备
+配置，不应当作 SDK 的 IP 白名单。
+
+在工作区根目录编译与执行离线合同（不初始化 SDK、不访问雷达）：
+
+```bash
+colcon build --packages-up-to livox_ros_driver2 --cmake-args -DBUILD_TESTING=ON
+source install/setup.bash
+colcon test --packages-select livox_ros_driver2 --ctest-args -R '^(test_imu_extrinsic|test_packet|test_queue_exit|test_ros_messages)$' --output-on-failure
+colcon test-result --verbose
+```
+
+这些测试调用真实包回调、点转换、SPSC 队列和 ROS 消息打包代码；SDK
+observer 注册与退出仅在测试进程中替换。它们不代表实机同步或 SLAM 精度
+验收，测试结束也不需要启动驱动进程。
