@@ -241,7 +241,7 @@ void Lddc::PublishPclMsg(LidarDataQueue *queue, uint8_t index) {
   }
   first_log = false;
   return;
-#endif
+#else
   while(!QueueIsEmpty(queue)) {
     StoragePacket pkg;
     QueuePop(queue, &pkg);
@@ -257,6 +257,7 @@ void Lddc::PublishPclMsg(LidarDataQueue *queue, uint8_t index) {
     PublishPclData(index, timestamp, cloud);
   }
   return;
+#endif  // BUILDING_ROS2
 }
 
 void Lddc::InitPointcloud2MsgHeader(PointCloud2& cloud) {
@@ -416,6 +417,7 @@ void Lddc::PublishCustomPointData(const CustomMsg& livox_msg, const uint8_t inde
   }
 }
 
+#ifdef BUILDING_ROS1
 void Lddc::InitPclMsg(const StoragePacket& pkg, PointCloud& cloud, uint64_t& timestamp) {
 #ifdef BUILDING_ROS1
   cloud.header.frame_id.assign(frame_id_);
@@ -476,6 +478,8 @@ void Lddc::PublishPclData(const uint8_t index, const uint64_t timestamp, const P
 #endif
   return;
 }
+
+#endif  // BUILDING_ROS1
 
 void Lddc::InitImuMsg(const ImuData& imu_data, ImuMsg& imu_msg, uint64_t& timestamp) {
   imu_msg.header.frame_id = "livox_frame";

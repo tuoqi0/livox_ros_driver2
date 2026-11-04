@@ -251,8 +251,8 @@ else(ROS_EDITION STREQUAL "ROS2")
   # further dependencies manually.
   # find_package(<dependency> REQUIRED)
   find_package(ament_cmake_auto REQUIRED)
+  # ROS2 publishes PointCloud2 or Livox CustomMsg; legacy PCL format 2 is rejected.
   ament_auto_find_build_dependencies()
-  find_package(PCL REQUIRED)
   find_package(std_msgs REQUIRED)
   find_package(builtin_interfaces REQUIRED)
   find_package(rosidl_default_generators REQUIRED)
@@ -285,10 +285,6 @@ else(ROS_EDITION STREQUAL "ROS2")
     find_path(LIVOX_LIDAR_SDK_INCLUDE_DIR NAMES livox_lidar_api.h REQUIRED)
   endif()
   message(STATUS "livox sdk: ${LIVOX_LIDAR_SDK_LIBRARY} (headers ${LIVOX_LIDAR_SDK_INCLUDE_DIR})")
-
-  ## PCL library
-  link_directories(${PCL_LIBRARY_DIRS})
-  add_definitions(${PCL_DEFINITIONS})
 
   # livox ros2 driver target
   ament_auto_add_library(${PROJECT_NAME} SHARED
@@ -329,7 +325,6 @@ else(ROS_EDITION STREQUAL "ROS2")
 
   # include file direcotry
   target_include_directories(${PROJECT_NAME} PUBLIC
-    ${PCL_INCLUDE_DIRS}
     ${APR_INCLUDE_DIRS}
     ${LIVOX_LIDAR_SDK_INCLUDE_DIR}
     ${LIVOX_INTERFACES_INCLUDE_DIRECTORIES}   # for custom msgs
@@ -342,8 +337,6 @@ else(ROS_EDITION STREQUAL "ROS2")
     ${LIVOX_LIDAR_SDK_LIBRARY}
     ${LIVOX_INTERFACE_TARGET}   # for custom msgs
     ${PPT_LIBRARY}
-    ${Boost_LIBRARY}
-    ${PCL_LIBRARIES}
     ${APR_LIBRARIES}
   )
 

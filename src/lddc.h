@@ -65,7 +65,9 @@ using CustomPoint = livox_ros_driver2::msg::CustomPoint;
 using ImuMsg = sensor_msgs::msg::Imu;
 #endif
 
+#ifdef BUILDING_ROS1
 using PointCloud = pcl::PointCloud<pcl::PointXYZI>;
+#endif
 
 class DriverNode;
 
@@ -114,13 +116,14 @@ class Lddc final {
   void FillPointsToCustomMsg(CustomMsg& livox_msg, const StoragePacket& pkg);
   void PublishCustomPointData(const CustomMsg& livox_msg, const uint8_t index);
 
+#ifdef BUILDING_ROS1
   void InitPclMsg(const StoragePacket& pkg, PointCloud& cloud, uint64_t& timestamp);
   void FillPointsToPclMsg(const StoragePacket& pkg, PointCloud& pcl_msg);
   void PublishPclData(const uint8_t index, const uint64_t timestamp, const PointCloud& cloud);
+#endif
 
   void InitImuMsg(const ImuData& imu_data, ImuMsg& imu_msg, uint64_t& timestamp);
 
-  void FillPointsToPclMsg(PointCloud& pcl_msg, LivoxPointXyzrtlt* src_point, uint32_t num);
   void FillPointsToCustomMsg(CustomMsg& livox_msg, LivoxPointXyzrtlt* src_point, uint32_t num,
       uint32_t offset_time, uint32_t point_interval, uint32_t echo_num);
 
