@@ -2,6 +2,8 @@
 
 Livox ROS Driver 2 is the 2nd-generation driver package used to connect LiDAR products produced by Livox, applicable for ROS (noetic recommended) and ROS2 (foxy or humble recommended).
 
+In this `slam_ws` fork, use the ROS 2 Jazzy workspace build entry in Section 2.3; the remaining ROS1 and older ROS2 material is vendor reference and is not a ROS1 build guide for this workspace.
+
   **Note :**
 
   As a debugging tool, Livox ROS Driver is not recommended for mass production but limited to test scenarios. You should optimize the code based on the original source to meet your various needs.
@@ -43,47 +45,43 @@ Desktop-Full installation is recommend.
 
 ## 2. Build & Run Livox ROS Driver 2
 
-### 2.1 Clone Livox ROS Driver 2 source code:
+### 2.1 Get the workspace source
 
-```shell
-git clone https://github.com/Livox-SDK/livox_ros_driver2.git ws_livox/src/livox_ros_driver2
+This package is maintained as a `slam_ws` submodule. Obtain the pinned driver,
+SDK and native Core together:
+
+```bash
+git clone --recurse-submodules https://github.com/tuoqi0/slam_ws.git
+cd slam_ws
+git submodule update --init --recursive
 ```
 
-  **Note :**
+### 2.2 Install workspace dependencies
 
-  Be sure to clone the source code in a '[work_space]/src/' folder (as shown above), otherwise compilation errors will occur due to the compilation tool restriction.
-
-### 2.2 Build & install the Livox-SDK2
-
-  **Note :**
-
-  Please follow the guidance of installation in the [Livox-SDK2/README.md](https://github.com/Livox-SDK/Livox-SDK2/blob/master/README.md)
+Use the dependency installation steps in the
+[slam_ws README](https://github.com/tuoqi0/slam_ws). The driver links the
+workspace's Livox-SDK2 installation, and its tests use robot_core.
 
 ### 2.3 Build the Livox ROS Driver 2:
 
-#### For ROS (take Noetic as an example):
-```shell
-source /opt/ros/noetic/setup.sh
-./build.sh ROS1
+Run colcon from the `slam_ws` root. The tracked `package.xml` contains the ROS2
+manifest and test dependencies; CMake installs launch files directly from
+`launch_ROS2/`. Build the driver and its workspace dependencies with:
+
+```bash
+cd /path/to/slam_ws
+source /opt/ros/jazzy/setup.bash
+CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --base-paths src --packages-up-to livox_ros_driver2 \
+  --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
-#### For ROS2 Foxy:
-```shell
-source /opt/ros/foxy/setup.sh
-./build.sh ROS2
-```
+When Livox-SDK2 and robot_core are already installed in this workspace, source
+that installation and rebuild only the driver:
 
-#### For ROS2 Humble:
-```shell
-source /opt/ros/humble/setup.sh
-./build.sh humble
-```
-
-#### For ROS2 Jazzy:
-
-```shell
-source /opt/ros/jazzy/setup.sh
-./build.sh jazzy
+```bash
+source install/setup.bash
+CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --base-paths src --packages-select livox_ros_driver2 \
+  --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
 For ROS2 single-configuration builds, an unset or empty `CMAKE_BUILD_TYPE`

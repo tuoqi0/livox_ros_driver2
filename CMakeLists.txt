@@ -1,10 +1,4 @@
 # judge which cmake codes to use 
-# Derive what build.sh used to pass by hand, so a plain
-#   colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=release
-# works. build.sh also copied package_ROS2.xml over package.xml and launch_ROS2
-# into launch/, and wiped the workspace build/ and install/ on the way; the
-# package.xml is now committed and the launch directory is installed from its
-# real name, so none of that is needed.
 if(NOT DEFINED ROS_EDITION OR ROS_EDITION STREQUAL "")
   if(DEFINED ENV{ROS_VERSION} AND "$ENV{ROS_VERSION}" STREQUAL "1")
     set(ROS_EDITION "ROS1")
