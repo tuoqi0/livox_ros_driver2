@@ -86,6 +86,12 @@ source /opt/ros/jazzy/setup.sh
 ./build.sh jazzy
 ```
 
+For ROS2 single-configuration builds, an unset or empty `CMAKE_BUILD_TYPE`
+defaults to `Release` for the driver and generated message libraries. Explicit
+types such as `Debug` and custom types, and multi-configuration generators,
+retain the selected configuration. Pass `-DCMAKE_BUILD_TYPE=Debug` through
+colcon's `--cmake-args` when debugging; use the same build type for timing comparisons.
+
 ### 2.4 Run Livox ROS Driver 2:
 
 #### For ROS:
