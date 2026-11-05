@@ -635,6 +635,12 @@ NoSync 模式目前仍使用逐包的主机接收时间，网络延迟会进入�
 `cmdline_input_bd_code` 也不负责 ROS 2 的设备隔离。`lidar_configs` 用于设备
 配置，不应当作 SDK 的 IP 白名单。
 
+本仓的 `MID360_config.json` 和 `MID360s_config.json` 使用 SDK 的
+`host_net_info[].lidar_ip[]` 指定设备 IP。更换雷达时，同时更新该列表和
+`lidar_configs[].ip`，两处保持一致；主机地址与端口按网卡配置填写。
+省略 `lidar_ip` 的自定义配置仍可能启用按型号自动发现，不能据
+`lidar_configs` 推断 SDK 只接入其中的 IP。
+
 启动失败时，检查 JSON 路径、主机网卡 IP 和端口占用，修正后重新启动驱动。
 SDK 会先等待本次已启动的线程退出，再回收已创建的通道、回调和缓存。
 SDK 初始化与退出应由控制线程串行调用，避免在传感器回调中直接执行退出。
