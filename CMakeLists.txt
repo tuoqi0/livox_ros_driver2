@@ -43,10 +43,10 @@ find_package(rosidl_default_generators REQUIRED)
 # check apr
 find_package(PkgConfig)
 pkg_check_modules(APR apr-1)
-if (APR_FOUND)
+if(APR_FOUND)
   message(${APR_INCLUDE_DIRS})
   message(${APR_LIBRARIES})
-endif (APR_FOUND)
+endif()
 
 # generate custom msg headers
 set(LIVOX_INTERFACES livox_interfaces2)
