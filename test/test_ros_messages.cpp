@@ -28,6 +28,7 @@
 #include "driver_node.h"
 #include "lds.h"
 #include "comm/pub_handler.h"
+#include "comm/ldq.h"
 
 #define private public
 #include "lddc.h"
@@ -72,7 +73,7 @@ TEST_CASE("DriverRosMessage.OrderedNativePointsKeepCustomAndPointCloud2TimeContr
   // lifetime before its existing constructor calls ResetLds.
   static Lds source(10.0, kSourceRawLidar);
   std::string frame = "packet_contract_frame";
-  Lddc control(kLivoxCustomMsg, 0, kSourceRawLidar, kOutputToRos, 10.0,
+  Lddc control(kLivoxCustomMsg, 0, kSourceRawLidar, 10.0,
                frame);
   REQUIRE((control.RegisterLds(&source) == 0));
   source.lidars_[0].lidar_type = kLivoxLidarType;
@@ -169,9 +170,30 @@ TEST_CASE("DriverRosMessage.OrderedNativePointsKeepCustomAndPointCloud2TimeContr
   }
 }
 
+TEST_CASE("DriverRosMessage.UnsupportedPclFormatConsumesQueuedPacket") {
+  static Lds source(10.0, kSourceRawLidar);
+  std::string frame = "unsupported_format_frame";
+  Lddc control(static_cast<int>(99), 0, kSourceRawLidar, 10.0, frame);
+  REQUIRE((control.RegisterLds(&source) == 0));
+  source.lidars_[0].connect_state = kConnectStateSampling;
+  REQUIRE((InitQueue(&source.lidars_[0].data, 8)));
+
+  PointXyzlt point{};
+  point.x = 1.0F;
+  PointPacket packet{};
+  packet.points = &point;
+  packet.points_num = 1;
+  REQUIRE((QueuePushAny(&source.lidars_[0].data,
+                        reinterpret_cast<std::uint8_t *>(&packet), 1234) == 1));
+  CHECK_FALSE((QueueIsEmpty(&source.lidars_[0].data)));
+
+  control.PollingLidarPointCloudData(0, &source.lidars_[0]);
+  CHECK((QueueIsEmpty(&source.lidars_[0].data)));
+}
+
 TEST_CASE("DriverRosMessage.ImuPackingPreservesRawRadiansAndGUnits") {
   std::string frame = "unused_lidar_frame";
-  Lddc control(kLivoxCustomMsg, 0, kSourceRawLidar, kOutputToRos, 10.0,
+  Lddc control(kLivoxCustomMsg, 0, kSourceRawLidar, 10.0,
                frame);
   ImuData raw{};
   raw.time_stamp = 1700000000000000123ULL;
@@ -187,7 +209,7 @@ TEST_CASE("DriverRosMessage.ImuPackingPreservesRawRadiansAndGUnits") {
   CHECK((stamp == raw.time_stamp));
   CHECK((rclcpp::Time(message.header.stamp).nanoseconds() ==
         static_cast<std::int64_t>(raw.time_stamp)));
-  CHECK((message.header.frame_id == "livox_frame"));
+  CHECK((message.header.frame_id == frame));
   CHECK((message.angular_velocity.x == static_cast<double>(raw.gyro_x)));
   CHECK((message.angular_velocity.y == static_cast<double>(raw.gyro_y)));
   CHECK((message.angular_velocity.z == static_cast<double>(raw.gyro_z)));
@@ -199,7 +221,7 @@ TEST_CASE("DriverRosMessage.ImuPackingPreservesRawRadiansAndGUnits") {
 TEST_CASE("DriverRosMessage.RequestExitReleasesBothColdDistributeWaits") {
   static Lds source(10.0, kSourceRawLidar);
   std::string frame = "cold_exit_contract";
-  Lddc control(kLivoxCustomMsg, 0, kSourceRawLidar, kOutputToRos, 10.0,
+  Lddc control(kLivoxCustomMsg, 0, kSourceRawLidar, 10.0,
                frame);
   REQUIRE((control.RegisterLds(&source) == 0));
   REQUIRE_FALSE((source.IsRequestExit()));

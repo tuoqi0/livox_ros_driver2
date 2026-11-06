@@ -1,34 +1,18 @@
 The following portions of the LIVOX’s Livox ROS Driver2 (“Software” referred to in the terms below) are made available to you under the terms of the MIT License provided below and is also available at https://opensource.org/licenses/MIT.  
 
 livox_ros_driver2
-├── build.sh
 ├── cmake
-│   └── version.cmake
+│   └── version.cmake
 ├── CMakeLists.txt
 ├── config
-│   ├── display_point_cloud_ROS1.rviz
-│   ├── display_point_cloud_ROS2.rviz
-│   ├── HAP_config.json
-│   ├── MID360_config.json
-│   └── mixed_HAP_MID360_config.json
-├── launch_ROS1
-│   ├── msg_HAP.launch
-│   ├── msg_MID360.launch
-│   ├── msg_mixed.launch
-│   ├── rviz_HAP.launch
-│   ├── rviz_MID360.launch
-│   └── rviz_mixed.launch
+│   ├── display_point_cloud_ROS2.rviz
+│   ├── AVIA2_config.json
+│   ├── HAP_config.json
+│   ├── MID360_config.json
+│   ├── MID360s_config.json
+│   └── mixed_HAP_MID360_config.json
 ├── launch_ROS2
-│   ├── msg_HAP_launch.py
-│   ├── msg_MID360_launch.py
-│   ├── rviz_HAP_launch.py
-│   ├── rviz_MID360_launch.py
-│   └── rviz_mixed.py
 ├── msg
-│   ├── CustomMsg.msg
-│   └── CustomPoint.msg
-├── package_ROS1.xml
-├── package_ROS2.xml
 ├── package.xml
 ├── README.md
 └── src

@@ -30,16 +30,10 @@
 #include <mutex>
 #include <thread>
 
-#ifdef WIN32
-#include <winsock2.h>
-#include <ws2def.h>
-#pragma comment(lib, "Ws2_32.lib")
-#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#endif // WIN32
 #include "livox_lidar_api.h"
 #include "comm/comm.h"
 #include "comm/pub_handler.h"
@@ -62,7 +56,7 @@ LdsLidar *g_lds_ldiar = nullptr;
 
 /** Lds lidar function -------------------------------------------------------*/
 LdsLidar::LdsLidar(double publish_freq)
-    : Lds(publish_freq, kSourceRawLidar), 
+    : Lds(publish_freq, kSourceRawLidar),
       auto_connect_mode_(true),
       whitelist_count_(0),
       is_initialized_(false) {
@@ -127,9 +121,7 @@ bool LdsLidar::ParseSummaryConfig() {
 }
 
 bool LdsLidar::InitLivoxLidar() {
-#ifdef BUILDING_ROS2
   DisableLivoxSdkConsoleLogger();
-#endif
 
   // parse user config
   LivoxLidarConfigParser parser(path_);

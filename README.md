@@ -1,662 +1,76 @@
-# Livox ROS Driver 2
+# Livox ROS 2 驱动
 
-Livox ROS Driver 2 is the 2nd-generation driver package used to connect LiDAR products produced by Livox, applicable for ROS (noetic recommended) and ROS2 (foxy or humble recommended).
+本目录是 `slam_ws` 的 Livox ROS 2 Jazzy 驱动。它只保留 ROS 2 主线，直接发布 `sensor_msgs/PointCloud2` 或 `livox_interfaces2/CustomMsg`，不再构建 ROS 1、PCL 或 Boost 兼容分支。
 
-In this `slam_ws` fork, use the ROS 2 Jazzy workspace build entry in Section 2.3; the remaining ROS1 and older ROS2 material is vendor reference and is not a ROS1 build guide for this workspace.
+## 编译
 
-  **Note :**
-
-  As a debugging tool, Livox ROS Driver is not recommended for mass production but limited to test scenarios. You should optimize the code based on the original source to meet your various needs.
-
-## 1. Preparation
-
-### 1.1 OS requirements
-
-  * Ubuntu 18.04 for ROS Melodic;
-  * Ubuntu 20.04 for ROS Noetic and ROS2 Foxy;
-  * Ubuntu 22.04 for ROS2 Humble;
-  * Ubuntu 24.04 for ROS 2 Jazzy;
-
-  **Tips:**
-
-  Colcon is a build tool used in ROS2.
-
-  How to install colcon: [Colcon installation instructions](https://docs.ros.org/en/foxy/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html)
-
-### 1.2 Install ROS & ROS2
-
-For ROS Melodic installation, please refer to:
-[ROS Melodic installation instructions](https://wiki.ros.org/melodic/Installation)
-
-For ROS Noetic installation, please refer to:
-[ROS Noetic installation instructions](https://wiki.ros.org/noetic/Installation)
-
-For ROS2 Foxy installation, please refer to:
-[ROS Foxy installation instructions](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html)
-
-For ROS2 Humble installation, please refer to:
-[ROS Humble installation instructions](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html)
-
-For ROS2 Jazzy installation, please refer to:
-[ROS Jazzy installation instructions](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debians.html)
-
-
-Desktop-Full installation is recommend.
-
-## 2. Build & Run Livox ROS Driver 2
-
-### 2.1 Get the workspace source
-
-This package is maintained as a `slam_ws` submodule. Obtain the pinned driver,
-SDK and native Core together:
+在 Jazzy 容器或同等 ROS 2 环境中，从工作区根目录执行：
 
 ```bash
-git clone --recurse-submodules https://github.com/tuoqi0/slam_ws.git
-cd slam_ws
-git submodule update --init --recursive
-```
-
-### 2.2 Install workspace dependencies
-
-Use the dependency installation steps in the
-[slam_ws README](https://github.com/tuoqi0/slam_ws). The driver links the
-workspace's Livox-SDK2 installation, and its tests use robot_core.
-
-### 2.3 Build the Livox ROS Driver 2:
-
-Run colcon from the `slam_ws` root. The tracked `package.xml` contains the ROS2
-manifest and test dependencies; CMake installs launch files directly from
-`launch_ROS2/`. Build the driver and its workspace dependencies with:
-
-```bash
-cd /path/to/slam_ws
 source /opt/ros/jazzy/setup.bash
-CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --base-paths src --packages-up-to livox_ros_driver2 \
+colcon build --base-paths src --packages-up-to livox_ros_driver2 \
+  --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release
+source install/setup.bash
+```
+
+只重新编译驱动时：
+
+```bash
+colcon build --base-paths src --packages-select livox_ros_driver2 \
   --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
-When Livox-SDK2 and robot_core are already installed in this workspace, source
-that installation and rebuild only the driver:
+## 启动与配置
+
+驱动启动文件位于 `launch_ROS2/`，按设备选择对应文件：
 
 ```bash
-source install/setup.bash
-CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --base-paths src --packages-select livox_ros_driver2 \
-  --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release
+ros2 launch livox_ros_driver2 msg_MID360_launch.py
+ros2 launch livox_ros_driver2 rviz_MID360_launch.py
 ```
 
-For ROS2 single-configuration builds, an unset or empty `CMAKE_BUILD_TYPE`
-defaults to `Release` for the driver and generated message libraries. Explicit
-types such as `Debug` and custom types, and multi-configuration generators,
-retain the selected configuration. Pass `-DCMAKE_BUILD_TYPE=Debug` through
-colcon's `--cmake-args` when debugging; use the same build type for timing comparisons.
+启动文件中的 `user_config_path` 指向 `config/` 下的设备 JSON。修改 JSON 前确认设备 IP、主机网卡和 `pcl_data_type` 与实际雷达一致；这里的 `pcl_data_type` 是 Livox SDK 的线缆数据编码，不是 PCL 库依赖。
 
-### 2.4 Run Livox ROS Driver 2:
+驱动参数只有 ROS 2 发布所需的主线参数：
 
-#### For ROS:
+| 参数 | 含义 | 常用值 |
+| --- | --- | --- |
+| `xfer_format` | 点云消息类型 | `0`=`PointCloud2`，`1`=`CustomMsg` |
+| `multi_topic` | 是否按设备拆分话题 | `0` 共用，`1` 每台一个 |
+| `data_src` | 数据源 | `0` 原始雷达 |
+| `publish_freq` | 发布频率（Hz） | `10.0` |
+| `frame_id` | 点云和 IMU 的坐标系 | `livox_frame` |
+| `user_config_path` | Livox JSON 配置 | 设备对应 JSON |
+| `cmdline_input_bd_code` | 设备绑定码 | 与现场配置一致 |
 
-```shell
-source ../../devel/setup.sh
-roslaunch livox_ros_driver2 [launch file]
-```
+`xfer_format` 取其他值会在节点初始化时记录错误并拒绝启动，避免进入无法发布的循环。
 
-in which,  
+## 输出话题和字段
 
-* **livox_ros_driver2** : is the ROS package name of Livox ROS Driver 2;
-* **[launch file]** : is the ROS launch file you want to use; the 'launch_ROS1' folder contains several launch samples for your reference;  
+单雷达模式下默认发布：
 
-An rviz launch example for HAP LiDAR would be:
+- `/livox/lidar`：`PointCloud2` 或 `livox_interfaces2/CustomMsg`
+- `/livox/imu`：`sensor_msgs/Imu`
 
-```shell
-roslaunch livox_ros_driver2 rviz_HAP.launch
-```
+`PointCloud2` 的每点字段为 `x`、`y`、`z`、`intensity`、`tag`、`line` 和 `timestamp`。`timestamp` 是点的绝对纳秒时间以 `float64` 存储；`CustomMsg` 使用 `timebase` 加 `offset_time` 表示同一时间信息。
 
-#### For ROS2:
-```shell
-source ../../install/setup.sh
-ros2 launch livox_ros_driver2 [launch file]
-```
+驱动入口会丢弃空点云、未知数据类型、长度不足或载荷越界的 SDK 包，并记录节流诊断。IMU 包按其协议长度单独校验。坏包不会进入下游定位。
 
-in which,  
+## 测试
 
-* **[launch file]** : is the ROS2 launch file you want to use; the 'launch_ROS2' folder contains several launch samples for your reference.
-
-A rviz launch example for HAP LiDAR would be:
-
-```shell
-ros2 launch livox_ros_driver2 rviz_HAP_launch.py
-```
-
-## 3. Launch file and livox_ros_driver2 internal parameter configuration instructions
-
-### 3.1 Launch file configuration instructions
-
-Launch files of ROS are in the "ws_livox/src/livox_ros_driver2/launch_ROS1" directory and launch files of ROS2 are in the "ws_livox/src/livox_ros_driver2/launch_ROS2" directory. Different launch files have different configuration parameter values and are used in different scenarios:
-
-| launch file name          | Description                                                  |
-| ------------------------- | ------------------------------------------------------------ |
-| rviz_HAP.launch   | Connect to HAP LiDAR device<br>Publish pointcloud2 format  data<br>Autoload rviz |
-| msg_HAP.launch     | Connect to HAP LiDAR device<br>Publish livox customized pointcloud data|
-| rviz_MID360.launch        | Connect to MID360 LiDAR device<br>Publish pointcloud2 format data <br>Autoload rviz|
-| msg_MID360.launch          | Connect to MID360 LiDAR device<br>Publish livox customized pointcloud data |
-| rviz_MID360s.launch        | Connect to MID360s LiDAR device<br>Publish pointcloud2 format data <br>Autoload rviz|
-| msg_MID360s.launch          | Connect to MID360s LiDAR device<br>Publish livox customized pointcloud data |
-| rviz_AVIA2.launch        | Connect to Avia2 LiDAR device<br>Publish pointcloud2 format data <br>Autoload rviz|
-| msg_AVIA2.launch          | Connect to Avia2 LiDAR device<br>Publish livox customized pointcloud data |
-| rviz_mixed.launch    | Connect to HAP and MID360 LiDAR device<br>Publish pointcloud2 format data <br>Autoload rviz|
-| msg_mixed.launch      | Connect to HAP and MID360 LiDAR device<br>Publish livox customized pointcloud data |
-
-### 3.2 Livox ros driver 2 internal main parameter configuration instructions
-
-All internal parameters of Livox_ros_driver2 are in the launch file. Below are detailed descriptions of the three commonly used parameters :
-
-| Parameter    | Detailed description                                         | Default |
-| ------------ | ------------------------------------------------------------ | ------- |
-| publish_freq | Set the frequency of point cloud publish <br>Floating-point data type, recommended values 5.0, 10.0, 20.0, 50.0, etc. The maximum publish frequency is 100.0 Hz.| 10.0    |
-| multi_topic  | If the LiDAR device has an independent topic to publish pointcloud data<br>0 -- All LiDAR devices use the same topic to publish pointcloud data<br>1 -- Each LiDAR device has its own topic to publish point cloud data | 0       |
-| xfer_format  | Set pointcloud format<br>0 -- Livox pointcloud2(PointXYZRTLT) pointcloud format<br>1 -- Livox customized pointcloud format<br>2 -- Standard pointcloud2 (pcl :: PointXYZI) pointcloud format in the PCL library (ROS1 only; ROS2 rejects this format) | 0       |
-
-  **Note :**
-
-Other parameters not mentioned in this table are not suggested to be changed unless fully understood.
-
-&ensp;&ensp;&ensp;&ensp;***Livox_ros_driver2 pointcloud data detailed description :***
-
-1. Livox pointcloud2 (PointXYZRTLT) point cloud format, as follows :
-
-```c
-float32 x               # X axis, unit:m
-float32 y               # Y axis, unit:m
-float32 z               # Z axis, unit:m
-float32 intensity       # the value is reflectivity, 0.0~255.0
-uint8   tag             # livox tag
-uint8   line            # laser number in lidar
-float64 timestamp       # Timestamp of point
-```
-  **Note :**
-
-  The number of points in the frame may be different, but each point provides a timestamp.
-
-2. Livox customized data package format, as follows :
-
-```c
-std_msgs/Header header     # ROS standard message header
-uint64          timebase   # The time of first point
-uint32          point_num  # Total number of pointclouds
-uint8           lidar_id   # Lidar device id number
-uint8[3]        rsvd       # Reserved use
-CustomPoint[]   points     # Pointcloud data
-```
-
-&ensp;&ensp;&ensp;&ensp;Customized Point Cloud (CustomPoint) format in the above customized data package :
-
-```c
-uint32  offset_time     # offset time relative to the base time
-float32 x               # X axis, unit:m
-float32 y               # Y axis, unit:m
-float32 z               # Z axis, unit:m
-uint8   reflectivity    # reflectivity, 0~255
-uint8   tag             # livox tag
-uint8   line            # laser number in lidar
-```
-
-3. The standard pointcloud2 (pcl :: PointXYZI) format in the PCL library (only ROS can publish):
-
-&ensp;&ensp;&ensp;&ensp;Please refer to the pcl :: PointXYZI data structure in the point_types.hpp file of the PCL library.
-
-## 4. LiDAR config
-
-LiDAR Configurations (such as ip, port, data type... etc.) can be set via a json-style config file. Config files for single HAP, Mid360, Mid360s, Avia2 and mixed-LiDARs are in the "config" folder. The parameter naming *'user_config_path'* in launch files indicates such json file path.
-
-1. Follow is a configuration example for HAP LiDAR (located in config/HAP_config.json):
-
-```json
-{
-  "lidar_summary_info" : {
-    "lidar_type": 8  # protocol type index, please don't revise this value
-  },
-  "HAP": {
-    "device_type" : "HAP",
-    "lidar_ipaddr": "",
-    "lidar_net_info" : {
-      "cmd_data_port": 56000,  # command port
-      "push_msg_port": 0,
-      "point_data_port": 57000,
-      "imu_data_port": 58000,
-      "log_data_port": 59000
-    },
-    "host_net_info" : {
-      "cmd_data_ip" : "192.168.1.5",  # host ip (it can be revised)
-      "cmd_data_port": 56000,
-      "push_msg_ip": "",
-      "push_msg_port": 0,
-      "point_data_ip": "192.168.1.5",  # host ip
-      "point_data_port": 57000,
-      "imu_data_ip" : "192.168.1.5",  # host ip
-      "imu_data_port": 58000,
-      "log_data_ip" : "",
-      "log_data_port": 59000
-    }
-  },
-  "lidar_configs" : [
-    {
-      "ip" : "192.168.1.100",  # ip of the LiDAR you want to config
-      "pcl_data_type" : 1,
-      "pattern_mode" : 0,
-      "blind_spot_set" : 50,
-      "extrinsic_parameter" : {
-        "roll": 0.0,
-        "pitch": 0.0,
-        "yaw": 0.0,
-        "x": 0,
-        "y": 0,
-        "z": 0
-      }
-    }
-  ]
-}
-```
-
-The parameter attributes in the above json file are described in the following table :
-
-**LiDAR configuration parameter**
-| Parameter                  | Type    | Description                                                  | Default         |
-| :------------------------- | ------- | ------------------------------------------------------------ | --------------- |
-| ip             | String  | Ip of the LiDAR you want to config | 192.168.1.100 |
-| pcl_data_type             | Int | Choose the resolution of the point cloud data to send<br>1 -- Cartesian coordinate data (32 bits)<br>2 -- Cartesian coordinate data (16 bits) <br>3 --Spherical coordinate data| 1           |
-| pattern_mode                | Int     | Space scan pattern<br>0 -- non-repeating scanning pattern mode<br>1 -- repeating scanning pattern mode <br>2 -- repeating scanning pattern mode (low scanning rate) | 0               |
-| blind_spot_set (Only for HAP LiDAR)                 | Int     | Set blind spot<br>Range from 50 cm to 200 cm               | 50               |
-| extrinsic_parameter |      | Set extrinsic parameter<br> The data types of "roll" "picth" "yaw" are float <br>  The data types of "x" "y" "z" are int<br>               |
-
-For more infomation about the HAP config, please refer to:
-[HAP Config File Description](https://github.com/Livox-SDK/Livox-SDK2/wiki/hap-config-file-description)
-
-2. Follow is a configuration example for Avia2 LiDAR (located in config/AVIA2_config.json). The Mid360 and Mid360s LiDARs use the same port numbers and config structure, only with a different device key ("MID360" / "Mid360s", see config/MID360_config.json and config/MID360s_config.json):
-
-```json
-{
-  "lidar_summary_info" : {
-    "lidar_type": 8
-  },
-  "Avia2": {
-    "lidar_net_info" : {
-      "cmd_data_port"  : 56100,
-      "push_msg_port"  : 56200,
-      "point_data_port": 56300,
-      "imu_data_port"  : 56400,
-      "log_data_port"  : 56500
-    },
-    "host_net_info" : [
-      {
-        "host_ip"        : "192.168.1.5",
-        "cmd_data_port"  : 56101,
-        "push_msg_port"  : 56201,
-        "point_data_port": 56301,
-        "imu_data_port"  : 56401,
-        "log_data_port"  : 56501
-      }
-    ]
-  },
-  "lidar_configs" : [
-    {
-      "ip" : "192.168.1.12",
-      "pcl_data_type" : 1,
-      "extrinsic_parameter" : {
-        "roll": 0.0,
-        "pitch": 0.0,
-        "yaw": 0.0,
-        "x": 0,
-        "y": 0,
-        "z": 0
-      }
-    }
-  ]
-}
-```
-
-3. When connecting multiple LiDARs, add objects corresponding to different LiDARs to the "lidar_configs" array. Examples of mixed-LiDARs config file contents are as follows :
-
-```json
-{
-  "lidar_summary_info" : {
-    "lidar_type": 8  # protocol type index, please don't revise this value
-  },
-  "HAP": {
-    "lidar_net_info" : {  # HAP ports, please don't revise these values
-      "cmd_data_port": 56000,  # HAP command port
-      "push_msg_port": 0,
-      "point_data_port": 57000,
-      "imu_data_port": 58000,
-      "log_data_port": 59000
-    },
-    "host_net_info" : {
-      "cmd_data_ip" : "192.168.1.5",  # host ip
-      "cmd_data_port": 56000,
-      "push_msg_ip": "",
-      "push_msg_port": 0,
-      "point_data_ip": "192.168.1.5",  # host ip
-      "point_data_port": 57000,
-      "imu_data_ip" : "192.168.1.5",  # host ip
-      "imu_data_port": 58000,
-      "log_data_ip" : "",
-      "log_data_port": 59000
-    }
-  },
-  "MID360": {
-    "lidar_net_info" : {  # Mid360 ports, please don't revise these values
-      "cmd_data_port": 56100,  # Mid360 command port
-      "push_msg_port": 56200,
-      "point_data_port": 56300,
-      "imu_data_port": 56400,
-      "log_data_port": 56500
-    },
-    "host_net_info" : {
-      "cmd_data_ip" : "192.168.1.5",  # host ip
-      "cmd_data_port": 56101,
-      "push_msg_ip": "192.168.1.5",  # host ip
-      "push_msg_port": 56201,
-      "point_data_ip": "192.168.1.5",  # host ip
-      "point_data_port": 56301,
-      "imu_data_ip" : "192.168.1.5",  # host ip
-      "imu_data_port": 56401,
-      "log_data_ip" : "",
-      "log_data_port": 56501
-    }
-  },
-  "lidar_configs" : [
-    {
-      "ip" : "192.168.1.100",  # ip of the HAP you want to config
-      "pcl_data_type" : 1,
-      "pattern_mode" : 0,
-      "blind_spot_set" : 50,
-      "extrinsic_parameter" : {
-        "roll": 0.0,
-        "pitch": 0.0,
-        "yaw": 0.0,
-        "x": 0,
-        "y": 0,
-        "z": 0
-      }
-    },
-    {
-      "ip" : "192.168.1.12",  # ip of the Mid360 you want to config
-      "pcl_data_type" : 1,
-      "pattern_mode" : 0,
-      "extrinsic_parameter" : {
-        "roll": 0.0,
-        "pitch": 0.0,
-        "yaw": 0.0,
-        "x": 0,
-        "y": 0,
-        "z": 0
-      }
-    }
-  ]
-}
-```
-4. when multiple nics on the host connect to multiple LiDARs, you need to add objects corresponding to different LiDARs to the lidar_configs array. Run different luanch files separately, and the following is an example of mixing lidar configuration file contents:
-
-**MID360_config1:**
-```json
-{
-  "lidar_summary_info" : {
-    "lidar_type": 8  # protocol type index，please don't revise this value
-  },
-    "MID360": {
-        "lidar_net_info": {
-            "cmd_data_port": 56100, # command port
-            "push_msg_port": 56200, 
-            "point_data_port": 56300,
-            "imu_data_port": 56400,
-            "log_data_port": 56500
-        },
-        "host_net_info": [
-            {
-                "lidar_ip": ["192.168.1.100"], # Lidar ip
-                "host_ip": "192.168.1.5", # host ip
-                "cmd_data_port": 56101,
-                "push_msg_port": 56201,
-                "point_data_port": 56301,
-                "imu_data_port": 56401,
-                "log_data_port": 56501
-            }
-        ]
-    },
-    "lidar_configs": [
-        {
-            "ip": "192.168.1.100", # ip of the LiDAR you want to config
-            "pcl_data_type": 1,
-            "pattern_mode": 0,
-            "extrinsic_parameter": {
-                "roll": 0.0,
-                "pitch": 0.0,
-                "yaw": 0.0,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            }
-        }
-    ]
-}
-```
-**MID360_config2:**
-```json
-{
-  "lidar_summary_info" : {
-    "lidar_type": 8  # protocol type index，please don't revise this value
-  },
-    "MID360": {
-        "lidar_net_info": {
-            "cmd_data_port": 56100, # command port
-            "push_msg_port": 56200, 
-            "point_data_port": 56300,
-            "imu_data_port": 56400,
-            "log_data_port": 56500
-        },
-        "host_net_info": [
-            {
-                "lidar_ip": ["192.168.2.100"], # Lidar ip
-                "host_ip": "192.168.2.5", # host ip
-                "cmd_data_port": 56101,
-                "push_msg_port": 56201,
-                "point_data_port": 56301,
-                "imu_data_port": 56401,
-                "log_data_port": 56501
-            }
-        ]
-    },
-    "lidar_configs": [
-        {
-            "ip": "192.168.2.100", # ip of the LiDAR you want to config
-            "pcl_data_type": 1,
-            "pattern_mode": 0,
-            "extrinsic_parameter": {
-                "roll": 0.0,
-                "pitch": 0.0,
-                "yaw": 0.0,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            }
-        }
-    ]
-}
-```
-**Launch1:**
-```
-<launch>
-    <!--user configure parameters for ros start-->
-    <arg name="lvx_file_path" default="livox_test.lvx"/>
-    <arg name="bd_list" default="100000000000000"/>
-    <arg name="xfer_format" default="0"/>
-    <arg name="multi_topic" default="1"/>
-    <arg name="data_src" default="0"/>
-    <arg name="publish_freq" default="10.0"/>
-    <arg name="output_type" default="0"/>
-    <arg name="rviz_enable" default="true"/>
-    <arg name="rosbag_enable" default="false"/>
-    <arg name="cmdline_arg" default="$(arg bd_list)"/>
-    <arg name="msg_frame_id" default="livox_frame"/>
-    <arg name="lidar_bag" default="true"/>
-    <arg name="imu_bag" default="true"/>
-    <!--user configure parameters for ros end--> 
-
-    <param name="xfer_format" value="$(arg xfer_format)"/>
-    <param name="multi_topic" value="$(arg multi_topic)"/>
-    <param name="data_src" value="$(arg data_src)"/>
-    <param name="publish_freq" type="double" value="$(arg publish_freq)"/>
-    <param name="output_data_type" value="$(arg output_type)"/>
-    <param name="cmdline_str" type="string" value="$(arg bd_list)"/>
-    <param name="cmdline_file_path" type="string" value="$(arg lvx_file_path)"/>
-    <param name="user_config_path" type="string" value="$(find livox_ros_driver2)/config/MID360_config1.json"/> # Mid360 MID360_config1 name
-    <param name="frame_id" type="string" value="$(arg msg_frame_id)"/>
-    <param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
-    <param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
-
-    <node name="livox_lidar_publisher1" pkg="livox_ros_driver2"
-          type="livox_ros_driver2_node" required="true"
-          output="screen" args="$(arg cmdline_arg)"/>
-
-    <group if="$(arg rviz_enable)">
-        <node name="livox_rviz" pkg="rviz" type="rviz" respawn="true"
-                args="-d $(find livox_ros_driver2)/config/display_point_cloud_ROS1.rviz"/>
-    </group>
-
-    <group if="$(arg rosbag_enable)">
-        <node pkg="rosbag" type="record" name="record" output="screen"
-                args="-a"/>
-    </group>
-
-</launch>
-```
-**Launch2:**
-```
-<launch>
-    <!--user configure parameters for ros start-->
-    <arg name="lvx_file_path" default="livox_test.lvx"/>
-    <arg name="bd_list" default="100000000000000"/>
-    <arg name="xfer_format" default="0"/>
-    <arg name="multi_topic" default="1"/>
-    <arg name="data_src" default="0"/>
-    <arg name="publish_freq" default="10.0"/>
-    <arg name="output_type" default="0"/>
-    <arg name="rviz_enable" default="true"/>
-    <arg name="rosbag_enable" default="false"/>
-    <arg name="cmdline_arg" default="$(arg bd_list)"/>
-    <arg name="msg_frame_id" default="livox_frame"/>
-    <arg name="lidar_bag" default="true"/>
-    <arg name="imu_bag" default="true"/>
-    <!--user configure parameters for ros end--> 
-
-    <param name="xfer_format" value="$(arg xfer_format)"/>
-    <param name="multi_topic" value="$(arg multi_topic)"/>
-    <param name="data_src" value="$(arg data_src)"/>
-    <param name="publish_freq" type="double" value="$(arg publish_freq)"/>
-    <param name="output_data_type" value="$(arg output_type)"/>
-    <param name="cmdline_str" type="string" value="$(arg bd_list)"/>
-    <param name="cmdline_file_path" type="string" value="$(arg lvx_file_path)"/>
-    <param name="user_config_path" type="string" value="$(find livox_ros_driver2)/config/MID360_config2.json"/> # Mid360 MID360_config2 name
-    <param name="frame_id" type="string" value="$(arg msg_frame_id)"/>
-    <param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
-    <param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
-
-    <node name="livox_lidar_publisher2" pkg="livox_ros_driver2"
-          type="livox_ros_driver2_node" required="true"
-          output="screen" args="$(arg cmdline_arg)"/>
-
-    <group if="$(arg rviz_enable)">
-        <node name="livox_rviz" pkg="rviz" type="rviz" respawn="true"
-                args="-d $(find livox_ros_driver2)/config/display_point_cloud_ROS1.rviz"/>
-    </group>
-
-    <group if="$(arg rosbag_enable)">
-        <node pkg="rosbag" type="record" name="record" output="screen"
-                args="-a"/>
-    </group>
-
-</launch>
-
-```
-
-## 5. Supported LiDAR list
-
-* HAP
-* Mid360
-* Mid360s
-* Avia2
-* (more types are comming soon...)
-
-## 6. FAQ
-
-### 6.1 launch with "livox_lidar_rviz_HAP.launch" but no point cloud display on the grid?
-
-Please check the "Global Options - Fixed Frame" field in the RViz "Display" pannel. Set the field value to "livox_frame" and check the "PointCloud2" option in the pannel.
-
-### 6.2 launch with command "ros2 launch livox_lidar_rviz_HAP_launch.py" but cannot open shared object file "liblivox_sdk_shared.so" ?
-
-Please add '/usr/local/lib' to the env LD_LIBRARY_PATH.
-
-* If you want to add to current terminal:
-
-  ```shell
-  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-  ```
-
-* If you want to add to current user:
-
-  ```shell
-  vim ~/.bashrc
-  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-  source ~/.bashrc
-  ```
-
-
-## ROS 2 数据时序与离线检查
-
-驱动的 IMU 输出沿用设备单位：角速度 rad/s，加速度 g。使用内置 IMU
-时，Keel YAML 的 `mapping.acc_norm` 应为 `1.0`；外接 IMU 的话题、单位和
-外参应按该传感器单独配置。
-
-PTP/GPS 模式保留设备的纳秒时间戳。CustomMsg 的 `timebase` 是帧内最早
-点的绝对时刻，`offset_time` 是相对它的纳秒差；PointCloud2 的 `timestamp`
-是 FLOAT64 绝对纳秒数，双精度不能无损表达当前纪元的每一个纳秒。
-Mid-360 协议的 `time_interval` 是包内末点减首点；N 个样本有 N-1 个间隔。
-输出按绝对采样时间稳定排序，同一时刻的多回波保持原顺序。非 IMU 包的
-`dot_num=0` 时在入口丢弃，不进入点云工作队列；IMU 解码保持原规则。
-SDK 和 ROS 回调入口还会检查空指针、报文长度、`data_type` 与对应载荷大小；
-不符合协议的报文丢弃并节流记录长度、类型和点数诊断，避免短包进入原始载荷解码。
-
-NoSync 模式目前仍使用逐包的主机接收时间，网络延迟会进入点云/IMU 的
-相对时序；它不能替代 PTP，也不能保证与外接 IMU 同步。帧内排序不负责
-恢复已经发布过的跨帧迟到包，也不能让 uint32 offset 表达 4.295 秒以上的
-时间跨度。设备重启和切换同步源时，应重新启动本次采集并检查时间线。
-
-`multi_topic=0` 会把所有发布设备放进同一对话题，适用于单设备输入；
-单雷达 LIO 不能直接消费两台雷达混在一起的消息。多设备采集请用
-`multi_topic=1`，按 `ros2 topic list` 列出的 IP 后缀话题选择同一台设备的
-点云和 IMU。`lidar_id` 仅8位，不能用它证明录包只有一台设备；
-`cmdline_input_bd_code` 也不负责 ROS 2 的设备隔离。`lidar_configs` 用于设备
-配置，不应当作 SDK 的 IP 白名单。
-
-本仓的 `MID360_config.json` 和 `MID360s_config.json` 使用 SDK 的
-`host_net_info[].lidar_ip[]` 指定设备 IP。更换雷达时，同时更新该列表和
-`lidar_configs[].ip`，两处保持一致；主机地址与端口按网卡配置填写。
-省略 `lidar_ip` 的自定义配置仍可能启用按型号自动发现，不能据
-`lidar_configs` 推断 SDK 只接入其中的 IP。
-
-启动失败时，检查 JSON 路径、主机网卡 IP 和端口占用，修正后重新启动驱动。
-SDK 会先等待本次已启动的线程退出，再回收已创建的通道、回调和缓存。
-SDK 初始化与退出应由控制线程串行调用，避免在传感器回调中直接执行退出。
-
-在工作区根目录编译与执行离线合同（不执行真实 SDK 初始化、不访问雷达）：
+构建测试并运行驱动行为回归：
 
 ```bash
-colcon build --packages-up-to livox_ros_driver2 --cmake-args -DBUILD_TESTING=ON
+colcon build --base-paths src --packages-select livox_ros_driver2 \
+  --cmake-args -DBUILD_TESTING=ON
 source install/setup.bash
-colcon test --packages-select livox_ros_driver2 --ctest-args -R '^(test_imu_extrinsic|test_packet|test_queue_exit|test_ros_messages|test_startup)$' --output-on-failure
-colcon test-result --verbose
+cd build/livox_ros_driver2
+ctest --output-on-failure -R \
+  'test_imu_extrinsic|test_packet|test_queue_exit|test_ros_messages|test_startup'
 ```
 
-这些测试调用真实包回调、点转换、SPSC 队列、ROS 消息打包与驱动启动代码；
-SDK 注册、命令发送和初始化/退出仅在相应测试进程中替换。启动测试在 SDK
-初始化返回前触发一次设备通知，并延后执行命令应答，检查配置与采样状态。
-它们不代表实机同步或 SLAM 精度验收，测试结束也不需要启动驱动进程。
+测试覆盖 SDK 包边界、队列退出、点云/IMU 消息编码、外参发布和启动配置；其中 `test_ros_messages` 还验证非法点云格式会消费队列后退出，不会让发布线程空转。
+
+## 与 SLAM 的连接
+
+Keel LIO 使用 `/livox/lidar` 和 `/livox/imu`。映射和导航启动文件会按需要自动启动本驱动；实机运行时不要再启动第二个 Livox 驱动进程，否则同一话题会混入两路数据，定位结果不可解释。
