@@ -482,6 +482,32 @@ TEST_CASE("LivoxPacket.SourceDeinitJoinsItsRawWorkerBeforeSdkUninit") {
   CHECK((observer == nullptr));
 }
 
+TEST_CASE("LivoxPacket.MalformedPayloadsNeverEnterTheWorkerQueue") {
+  Fixture fixture;
+  livox_ros::PubHandler::OnLivoxLidarPointCloudCallback(
+    kFirstHandle, kLivoxLidarTypeMid360, nullptr, &fixture.handler);
+
+  auto short_payload = makeWirePacket(
+    kLivoxLidarCartesianCoordinateHighData, kTimestampTypeGptpOrPtp, kEpochNs, 1, 0,
+    std::vector<uint8_t>(sizeof(LivoxLidarCartesianHighRawPoint) - 1));
+  fixture.deliver(short_payload);
+
+  auto unknown_type = makeWirePacket(
+    0xff, kTimestampTypeGptpOrPtp, kEpochNs, 1, 0,
+    std::vector<uint8_t>(sizeof(LivoxLidarCartesianHighRawPoint)));
+  fixture.deliver(unknown_type);
+
+  auto zero_dot = makeWirePacket(
+    kLivoxLidarCartesianCoordinateHighData, kTimestampTypeGptpOrPtp, kEpochNs, 0, 0,
+    std::vector<uint8_t>(sizeof(LivoxLidarCartesianHighRawPoint)));
+  fixture.deliver(zero_dot);
+
+  CHECK(fixture.imus.empty());
+  CHECK(fixture.frames.empty());
+  std::lock_guard<std::mutex> lock(fixture.handler.packet_mutex_);
+  CHECK(fixture.handler.raw_packet_queue_.empty());
+}
+
 TEST_CASE("LivoxPacket.ZeroPointNonImuPacketsNeverEnterTheWorkerQueue") {
   Fixture fixture;
   for (uint8_t type : point_types) {

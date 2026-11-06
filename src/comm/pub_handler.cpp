@@ -28,6 +28,9 @@
 #include "livox_lidar_api.h"
 #include <cstdlib>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <atomic>
 #include <iostream>
 #include <limits>
 #include <algorithm>
@@ -36,6 +39,46 @@ namespace livox_ros {
 
 
 namespace {
+
+constexpr std::size_t kPacketHeaderSize = offsetof(LivoxLidarEthernetPacket, data);
+
+std::size_t PointSizeForDataType(const uint8_t data_type) {
+  switch (data_type) {
+    case kLivoxLidarImuData:
+      return sizeof(RawImuPoint);
+    case kLivoxLidarCartesianCoordinateHighData:
+      return sizeof(LivoxLidarCartesianHighRawPoint);
+    case kLivoxLidarCartesianCoordinateLowData:
+      return sizeof(LivoxLidarCartesianLowRawPoint);
+    case kLivoxLidarSphericalCoordinateData:
+      return sizeof(LivoxLidarSpherPoint);
+    case kLivoxLidarDoubleEchoData:
+      return sizeof(LivoxLidarDoubleEchoRawPoint);
+    default:
+      return 0;
+  }
+}
+
+bool IsPacketLayoutValid(const LivoxLidarEthernetPacket * packet) {
+  if (packet == nullptr || packet->length < kPacketHeaderSize) return false;
+  const std::size_t payload_size = packet->length - kPacketHeaderSize;
+  const std::size_t point_size = PointSizeForDataType(packet->data_type);
+  if (point_size == 0) return false;
+  if (packet->data_type == kLivoxLidarImuData) return payload_size >= point_size;
+  return packet->dot_num > 0 && static_cast<std::size_t>(packet->dot_num) <= payload_size / point_size;
+}
+
+void ReportMalformedPacket(const LivoxLidarEthernetPacket * packet) {
+  static std::atomic<std::uint64_t> invalid_packets{0};
+  const std::uint64_t count = ++invalid_packets;
+  if (count == 1 || count % 1000 == 0) {
+    std::cerr << "drop malformed Livox packet length="
+              << (packet == nullptr ? 0 : packet->length)
+              << " type=" << (packet == nullptr ? 0 : packet->data_type)
+              << " dots=" << (packet == nullptr ? 0 : packet->dot_num) << std::endl;
+  }
+}
+
 uint64_t PointTimestamp(const RawPacket& packet, uint32_t index) {
   // A one-point packet has no inter-point gap. Multiply before division so
   // integer rounding does not shorten the declared first-to-last span.
@@ -142,6 +185,10 @@ void PubHandler::OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t d
                                                 LivoxLidarEthernetPacket *data, void *client_data) {
   PubHandler* self = (PubHandler*)client_data;
   if (!self) {
+    return;
+  }
+  if (!IsPacketLayoutValid(data)) {
+    ReportMalformedPacket(data);
     return;
   }
 
