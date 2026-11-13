@@ -41,7 +41,9 @@ ros2 launch livox_ros_driver2 rviz_MID360_launch.py
 | `publish_freq` | 发布频率（Hz） | `10.0` |
 | `frame_id` | 点云和 IMU 的坐标系 | `livox_frame` |
 | `user_config_path` | Livox JSON 配置 | 设备对应 JSON |
-| `cmdline_input_bd_code` | 设备绑定码 | 与现场配置一致 |
+
+设备筛选以 JSON 的 `lidar_configs[].ip` 为准。未列入 JSON 的雷达只记录诊断，不会注册、
+启用或进入点云/IMU发布队列；不要依赖旧版 `cmdline_input_bd_code` 参数。
 
 `xfer_format` 取其他值会在节点初始化时记录错误并拒绝启动，避免进入无法发布的循环。
 

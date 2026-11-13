@@ -42,16 +42,12 @@ void LivoxLidarCallback::LidarInfoChangeCallback(const uint32_t handle,
 
   LidarDevice* lidar_device = GetLidarDevice(handle, client_data);
   if (lidar_device == nullptr) {
-    std::cout << "found lidar not defined in the user-defined config, ip: " << IpNumToString(handle) << std::endl;
-    // add lidar device
-    uint8_t index = 0;
-    int8_t ret = lds_lidar->cache_index_.GetFreeIndex(kLivoxLidarType, handle, index);
-    if (ret != 0) {
-      std::cout << "failed to add lidar device, lidar ip: " << IpNumToString(handle) << std::endl;
-      return;
-    }
-    LidarDevice *p_lidar = &(lds_lidar->lidars_[index]);
-    p_lidar->lidar_type = kLivoxLidarType;
+    // The JSON list is the device boundary for mapping. Do not auto-register
+    // a second radar discovered on the same network: its point cloud and IMU
+    // would otherwise be merged into the configured /livox topics.
+    std::cout << "ignore lidar not defined in the user-defined config, ip: "
+              << IpNumToString(handle) << std::endl;
+    return;
   } else {
     // set the lidar according to the user-defined config
     const UserLivoxLidarConfig& config = lidar_device->livox_config;

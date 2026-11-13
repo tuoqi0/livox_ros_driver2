@@ -275,6 +275,18 @@ TEST_CASE("LivoxStartup.EarlyNotificationUsesPreparedDevices") {
   const bool worker_started = pub_handler().point_process_thread_ &&
                               pub_handler().point_process_thread_->joinable();
   const bool source_initialized = expected_source->is_initialized_;
+  const uint32_t unknown_handle = IpStringToNum("127.0.0.99");
+  const std::size_t command_count_before_unknown = commands.size();
+  if (initialized && info_callback) {
+    LivoxLidarInfo unknown_info{};
+    unknown_info.dev_type = kLivoxLidarTypeMid360;
+    info_callback(unknown_handle, &unknown_info, info_client);
+  }
+  uint8_t unknown_index = 0;
+  const bool unknown_cached =
+      expected_source->cache_index_.GetIndex(kLivoxLidarType, unknown_handle, unknown_index) == 0;
+  CHECK_FALSE(unknown_cached);
+  CHECK(commands.size() == command_count_before_unknown);
   // Clean the real worker before reporting an assertion failure. No restart,
   // retry event or direct test call to InfoChange repairs a missed notification.
   const int deinit_result = initialized ? expected_source->DeInitLdsLidar() : -1;
