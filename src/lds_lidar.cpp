@@ -130,6 +130,12 @@ bool LdsLidar::InitLivoxLidar() {
     std::cout << "failed to parse user-defined config" << std::endl;
   }
 
+  // SDK initialization can fail after device metadata has been cached.
+  // Rebuild that metadata from this attempt's JSON before discovery starts.
+  cache_index_.Clear();
+  this->ResetLdsLidar();
+  pub_handler().ClearAllLidarsExtrinsicParams();
+
   // fill in lidar devices
   for (auto& config : user_configs) {
     uint8_t index = 0;

@@ -23,6 +23,7 @@
 
 #include "livox_lidar_api.h"
 #include "comm/comm.h"
+#include "comm/ldq.h"
 #include "lds.h"
 #include "rapidjson/document.h"
 #define private public
@@ -48,14 +49,14 @@ constexpr const char* kConfig = R"json({
 
 class ConfigFile {
  public:
-  ConfigFile() {
+  explicit ConfigFile(const char* contents = kConfig) {
     const int fd = mkstemp(path_);
     REQUIRE((fd >= 0));
     FILE* file = fdopen(fd, "wb");
     if (!file) close(fd);
     REQUIRE((file != nullptr));
-    const size_t length = std::strlen(kConfig);
-    const size_t written = std::fwrite(kConfig, 1, length, file);
+    const size_t length = std::strlen(contents);
+    const size_t written = std::fwrite(contents, 1, length, file);
     const int closed = std::fclose(file);
     REQUIRE((written == length));
     REQUIRE((closed == 0));
@@ -92,14 +93,38 @@ struct InitObservation {
   bool correct_client = false;
   bool correct_path = false;
   bool default_optional_arguments = false;
+  std::array<uint32_t, 2> configured_handles{};
   std::array<Metadata, 2> metadata;
   std::array<bool, 2> sampling_after_notification{{false, false}};
   unsigned notifications = 0;
+  unsigned unknown_notifications = 0;
+  std::array<Metadata, 2> rejected_metadata;
+};
+
+struct StoredDeviceObservation {
+  bool cache_found = false;
+  uint32_t queued_points = 0;
+  bool point_popped = false;
+  StoragePacket point{};
+  bool point_queue_empty = false;
+  bool imu_popped = false;
+  ImuData imu{};
+  bool imu_queue_empty = false;
+};
+
+struct StorageObservation {
+  std::array<StoredDeviceObservation, 2> configured;
+  std::array<Metadata, 2> rejected_metadata;
+  unsigned allocated_point_queues = 0;
+  unsigned nonempty_imu_queues = 0;
+  uint32_t total_queued_points = 0;
 };
 
 LdsLidar* expected_source = nullptr;
 std::string expected_path;
 std::array<uint32_t, 2> handles{};
+uint32_t unknown_handle = 0;
+std::array<uint32_t, 2> rejected_handles{};
 LivoxLidarInfoChangeCallback info_callback = nullptr;
 void* info_client = nullptr;
 std::vector<Registration> registrations;
@@ -110,7 +135,7 @@ unsigned acknowledged_commands = 0;
 unsigned sdk_uninit_calls = 0;
 unsigned observer_add_calls = 0;
 unsigned observer_remove_calls = 0;
-bool fail_next_init = true;
+unsigned remaining_init_failures = 2;
 bool sdk_uninit_saw_stopped_worker = false;
 uint16_t active_observer = 0;
 
@@ -129,6 +154,55 @@ Metadata metadataFor(uint32_t handle) {
   result.extrinsic_found = found != pub_handler().lidar_extrinsics_.end();
   if (result.extrinsic_found) result.extrinsic = found->second.param;
   return result;
+}
+
+StorageObservation injectStorageTraffic() {
+  // Place an unknown packet between both configured devices in one frame so
+  // rejecting it must still allow the following configured packet through.
+  const std::array<uint32_t, 4> input_handles{{
+      handles[0], rejected_handles[0], rejected_handles[1], handles[1]}};
+  std::array<PointXyzlt, 4> points{{
+      {1.0f, 2.0f, 3.0f, 11.0f, 4, 1, 100},
+      {4.0f, 5.0f, 6.0f, 88.0f, 6, 2, 800},
+      {7.0f, 8.0f, 9.0f, 99.0f, 8, 3, 900},
+      {-1.0f, -2.0f, -3.0f, 22.0f, 5, 2, 200}}};
+  PointFrame frame;
+  frame.lidar_num = static_cast<uint8_t>(input_handles.size());
+  for (size_t i = 0; i < input_handles.size(); ++i) {
+    frame.base_time[i] = 1000000 + i;
+    frame.lidar_point[i] = {input_handles[i], kLivoxLidarType, 1, &points[i]};
+    ImuData imu{};
+    imu.lidar_type = kLivoxLidarType;
+    imu.handle = input_handles[i];
+    imu.time_stamp = 2000000 + i;
+    imu.gyro_x = static_cast<float>(i + 1);
+    imu.acc_z = static_cast<float>(10 + i);
+    expected_source->StorageImuData(&imu);
+  }
+  expected_source->StoragePointData(&frame);
+
+  StorageObservation observed;
+  for (size_t i = 0; i < rejected_handles.size(); ++i)
+    observed.rejected_metadata[i] = metadataFor(rejected_handles[i]);
+  for (auto& device : expected_source->lidars_) {
+    observed.allocated_point_queues += device.data.storage_packet.load() ? 1 : 0;
+    observed.nonempty_imu_queues += device.imu_data.Empty() ? 0 : 1;
+    observed.total_queued_points += QueueUsedSize(&device.data);
+  }
+  for (size_t i = 0; i < handles.size(); ++i) {
+    auto& result = observed.configured[i];
+    uint8_t index = 0;
+    result.cache_found = expected_source->cache_index_.GetIndex(
+        kLivoxLidarType, handles[i], index) == 0;
+    if (!result.cache_found) continue;
+    auto& device = expected_source->lidars_[index];
+    result.queued_points = QueueUsedSize(&device.data);
+    result.point_popped = QueuePop(&device.data, &result.point);
+    result.point_queue_empty = QueueIsEmpty(&device.data);
+    result.imu_popped = device.imu_data.Pop(result.imu);
+    result.imu_queue_empty = device.imu_data.Empty();
+  }
+  return observed;
 }
 
 livox_status queueCommand(Kind kind, uint32_t handle, int64_t value,
@@ -174,16 +248,29 @@ extern "C" bool LivoxLidarSdkInit(const char* path, const char* host_ip,
   observation.correct_client = info_client == expected_source;
   observation.correct_path = path && expected_path == path;
   observation.default_optional_arguments = host_ip && host_ip[0] == '\0' && !log_config;
+  observation.configured_handles = handles;
   for (size_t i = 0; i < handles.size(); ++i)
     observation.metadata[i] = metadataFor(handles[i]);
 
-  if (fail_next_init) {
+  if (remaining_init_failures) {
     // Exercise the existing SDK-init failure return without partially starting
     // a transport. This does not claim to cover SDK partial-init cleanup.
-    fail_next_init = false;
+    --remaining_init_failures;
     init_observations.push_back(observation);
     return false;
   }
+
+  const auto notify_rejected = [&] {
+    if (!info_callback) return;
+    for (uint32_t handle : rejected_handles) {
+      LivoxLidarInfo info{};
+      info.dev_type = kLivoxLidarTypeMid360;
+      info_callback(handle, &info, info_client);
+      ++observation.unknown_notifications;
+      acknowledgeCommands();
+    }
+  };
+  notify_rejected();
 
   for (size_t i = 0; i < handles.size(); ++i) {
     if (info_callback) {
@@ -198,6 +285,9 @@ extern "C" bool LivoxLidarSdkInit(const char* path, const char* host_ip,
       observation.sampling_after_notification[i] =
           expected_source->lidars_[index].connect_state == kConnectStateSampling;
   }
+  notify_rejected();
+  for (size_t i = 0; i < rejected_handles.size(); ++i)
+    observation.rejected_metadata[i] = metadataFor(rejected_handles[i]);
   init_observations.push_back(observation);
   return true;
 }
@@ -256,6 +346,8 @@ TEST_CASE("LivoxStartup.EarlyNotificationUsesPreparedDevices") {
   ConfigFile file;
   expected_path = file.path();
   handles = {{IpStringToNum("127.0.0.81"), IpStringToNum("127.0.0.82")}};
+  unknown_handle = IpStringToNum("127.0.0.99");
+  rejected_handles = {{handles[1], unknown_handle}};
   expected_source = LdsLidar::GetInstance(10.0);
   REQUIRE((expected_source != nullptr));
   REQUIRE_FALSE((expected_source->is_initialized_));
@@ -271,11 +363,26 @@ TEST_CASE("LivoxStartup.EarlyNotificationUsesPreparedDevices") {
   CHECK_FALSE((pub_handler().is_quit_.load()));
   CHECK((sdk_uninit_calls == 0));
 
-  const bool initialized = expected_source->InitLdsLidar(file.path());
+  const bool same_config_retry = expected_source->InitLdsLidar(file.path());
+  CHECK_FALSE((same_config_retry));
+  CHECK_FALSE((expected_source->is_initialized_));
+  CHECK((info_callback == nullptr));
+  CHECK((info_client == nullptr));
+  CHECK((observer_add_calls == 0));
+  CHECK((pub_handler().point_process_thread_ == nullptr));
+  CHECK_FALSE((pub_handler().is_quit_.load()));
+  CHECK((sdk_uninit_calls == 0));
+
+  std::string retry_config = kConfig;
+  retry_config.replace(retry_config.find("127.0.0.82"),
+                       std::strlen("127.0.0.82"), "127.0.0.83");
+  ConfigFile retry_file(retry_config.c_str());
+  expected_path = retry_file.path();
+  handles[1] = IpStringToNum("127.0.0.83");
+  const bool initialized = expected_source->InitLdsLidar(retry_file.path());
   const bool worker_started = pub_handler().point_process_thread_ &&
                               pub_handler().point_process_thread_->joinable();
   const bool source_initialized = expected_source->is_initialized_;
-  const uint32_t unknown_handle = IpStringToNum("127.0.0.99");
   const std::size_t command_count_before_unknown = commands.size();
   if (initialized && info_callback) {
     LivoxLidarInfo unknown_info{};
@@ -285,11 +392,46 @@ TEST_CASE("LivoxStartup.EarlyNotificationUsesPreparedDevices") {
   uint8_t unknown_index = 0;
   const bool unknown_cached =
       expected_source->cache_index_.GetIndex(kLivoxLidarType, unknown_handle, unknown_index) == 0;
-  CHECK_FALSE(unknown_cached);
-  CHECK(commands.size() == command_count_before_unknown);
+  const bool unknown_sent_no_commands = commands.size() == command_count_before_unknown;
+  StorageObservation stored;
+  if (initialized) stored = injectStorageTraffic();
   // Clean the real worker before reporting an assertion failure. No restart,
   // retry event or direct test call to InfoChange repairs a missed notification.
   const int deinit_result = initialized ? expected_source->DeInitLdsLidar() : -1;
+  CHECK_FALSE((unknown_cached));
+  CHECK((unknown_sent_no_commands));
+  for (size_t i = 0; i < rejected_handles.size(); ++i) {
+    CAPTURE(i);
+    CHECK_FALSE((stored.rejected_metadata[i].cache_found));
+    CHECK_FALSE((stored.rejected_metadata[i].extrinsic_found));
+  }
+  CHECK((stored.allocated_point_queues == handles.size()));
+  CHECK((stored.nonempty_imu_queues == handles.size()));
+  CHECK((stored.total_queued_points == handles.size()));
+  for (size_t i = 0; i < stored.configured.size(); ++i) {
+    CAPTURE(i);
+    const auto& device = stored.configured[i];
+    const size_t input_index = i == 0 ? 0 : 3;
+    CHECK((device.cache_found));
+    CHECK((device.queued_points == 1));
+    CHECK((device.point_popped));
+    CHECK((device.point_queue_empty));
+    CHECK((device.point.base_time == 1000000 + input_index));
+    CHECK((device.point.points_num == 1));
+    if (device.point.points.size() == 1) {
+      CHECK((device.point.points[0].x == (i == 0 ? 1.0f : -1.0f)));
+      CHECK((device.point.points[0].intensity == (i == 0 ? 11.0f : 22.0f)));
+      CHECK((device.point.points[0].offset_time == (i == 0 ? 100 : 200)));
+    } else {
+      CHECK((device.point.points.size() == 1));
+    }
+    CHECK((device.imu_popped));
+    CHECK((device.imu_queue_empty));
+    CHECK((device.imu.handle == handles[i]));
+    CHECK((device.imu.time_stamp == 2000000 + input_index));
+    CHECK((device.imu.gyro_x == static_cast<float>(input_index + 1)));
+    CHECK((device.imu.acc_z == static_cast<float>(10 + input_index)));
+  }
   CHECK((initialized));
   CHECK((source_initialized));
   CHECK((worker_started));
@@ -299,15 +441,19 @@ TEST_CASE("LivoxStartup.EarlyNotificationUsesPreparedDevices") {
   CHECK((observer_add_calls == 1));
   CHECK((observer_remove_calls == 1));
   CHECK((pub_handler().point_process_thread_ == nullptr));
-  REQUIRE((init_observations.size() == 2));
-  CHECK((registrations.size() == 3));
-  if (registrations.size() == 3) {
+  REQUIRE((init_observations.size() == 3));
+  CHECK((registrations.size() == 5));
+  if (registrations.size() == 5) {
     CHECK((registrations[0].callback == LivoxLidarCallback::LidarInfoChangeCallback));
     CHECK((registrations[0].client == expected_source));
     CHECK((registrations[1].callback == nullptr));
     CHECK((registrations[1].client == nullptr));
     CHECK((registrations[2].callback == LivoxLidarCallback::LidarInfoChangeCallback));
     CHECK((registrations[2].client == expected_source));
+    CHECK((registrations[3].callback == nullptr));
+    CHECK((registrations[3].client == nullptr));
+    CHECK((registrations[4].callback == LivoxLidarCallback::LidarInfoChangeCallback));
+    CHECK((registrations[4].client == expected_source));
   }
 
   const std::array<ExtParameter, 2> expected_extrinsics{{
@@ -320,7 +466,12 @@ TEST_CASE("LivoxStartup.EarlyNotificationUsesPreparedDevices") {
     CHECK((observed.correct_client));
     CHECK((observed.correct_path));
     CHECK((observed.default_optional_arguments));
-    CHECK((observed.notifications == (attempt == 0 ? 0 : 2)));
+    CHECK((observed.notifications == (attempt < 2 ? 0 : 2)));
+    CHECK((observed.unknown_notifications == (attempt < 2 ? 0 : 4)));
+    for (const auto& rejected : observed.rejected_metadata) {
+      CHECK_FALSE((rejected.cache_found));
+      CHECK_FALSE((rejected.extrinsic_found));
+    }
     for (size_t device = 0; device < handles.size(); ++device) {
       CAPTURE(device);
       const Metadata& metadata = observed.metadata[device];
@@ -328,8 +479,11 @@ TEST_CASE("LivoxStartup.EarlyNotificationUsesPreparedDevices") {
       CHECK((metadata.cache_found));
       CHECK((metadata.extrinsic_found));
       CHECK((metadata.lidar_type == kLivoxLidarType));
-      CHECK((metadata.handle == handles[device]));
-      CHECK((metadata.config.handle == handles[device]));
+      const uint32_t expected_handle = device == 0 ? IpStringToNum("127.0.0.81") :
+          IpStringToNum(attempt < 2 ? "127.0.0.82" : "127.0.0.83");
+      CHECK((observed.configured_handles[device] == expected_handle));
+      CHECK((metadata.handle == expected_handle));
+      CHECK((metadata.config.handle == expected_handle));
       CHECK((metadata.config.pcl_data_type == (device == 0 ? 1 : -1)));
       CHECK((metadata.config.pattern_mode == (device == 0 ? 0 : -1)));
       CHECK((metadata.config.blind_spot_set == (device == 0 ? 42 : -1)));
@@ -342,7 +496,7 @@ TEST_CASE("LivoxStartup.EarlyNotificationUsesPreparedDevices") {
       CHECK((metadata.extrinsic.x == extrinsic.x));
       CHECK((metadata.extrinsic.y == extrinsic.y));
       CHECK((metadata.extrinsic.z == extrinsic.z));
-      CHECK((observed.sampling_after_notification[device] == (attempt == 1)));
+      CHECK((observed.sampling_after_notification[device] == (attempt == 2)));
     }
   }
   REQUIRE((commands.size() == 10));

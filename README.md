@@ -42,8 +42,13 @@ ros2 launch livox_ros_driver2 rviz_MID360_launch.py
 | `frame_id` | 点云和 IMU 的坐标系 | `livox_frame` |
 | `user_config_path` | Livox JSON 配置 | 设备对应 JSON |
 
-设备筛选以 JSON 的 `lidar_configs[].ip` 为准。未列入 JSON 的雷达只记录诊断，不会注册、
-启用或进入点云/IMU发布队列；不要依赖旧版 `cmdline_input_bd_code` 参数。
+设备筛选以当前 JSON 的 `lidar_configs[].ip` 为准。未配置设备的点云和 IMU 在驱动收包
+入口丢弃并记录节流诊断，设备发现回调也不会为其注册发布设备或下发启动命令。
+初始化失败后再次加载配置，会先清理上次的设备索引、发布队列与外参，再按新 JSON 建立
+设备；这不是运行中热加载。旧版 `cmdline_input_bd_code` 参数已经移除。
+
+Keel 的 `map/nav` 使用 `multi_topic=0`，配置中应只选一台雷达。多台明确列入 JSON 的
+设备仍会共用话题；其他驱动进程的发布也不受本进程筛选影响。
 
 `xfer_format` 取其他值会在节点初始化时记录错误并拒绝启动，避免进入无法发布的循环。
 

@@ -29,6 +29,12 @@ namespace livox_ros {
 
 CacheIndex::CacheIndex() : index_cache_{} {}
 
+void CacheIndex::Clear() {
+  std::lock_guard<std::mutex> lock(index_mutex_);
+  map_index_.clear();
+  index_cache_.fill(false);
+}
+
 int8_t CacheIndex::GetFreeIndex(const uint8_t livox_lidar_type, const uint32_t handle, uint8_t& index) {
   std::string key;
   int8_t ret = GenerateIndexKey(livox_lidar_type, handle, key);

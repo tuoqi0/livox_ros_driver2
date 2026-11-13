@@ -73,6 +73,7 @@ namespace {
 using namespace livox_ros;
 constexpr uint32_t kFirstHandle = 0x0100007f;
 constexpr uint32_t kSecondHandle = 0x0200007f;
+constexpr uint32_t kThirdHandle = 0x0300007f;
 constexpr uint64_t kEpochNs = 1700000000123456789ULL;
 
 template<class T>
@@ -160,6 +161,12 @@ struct Fixture {
   std::function<void()> frame_received;
 
   Fixture() {
+    for (uint32_t handle : {kFirstHandle, kSecondHandle, kThirdHandle}) {
+      LidarExtParameter configured{};
+      configured.lidar_type = kLivoxLidarType;
+      configured.handle = handle;
+      handler.AddLidarsExtParam(configured);
+    }
     handler.SetPointCloudsCallback([this](PointFrame* frame, void*) {
       FrameCopy copy;
       for (uint8_t i = 0; i < frame->lidar_num; ++i) {
@@ -391,7 +398,6 @@ TEST_CASE("LivoxPacket.QueuedPtpCloudIgnoresAnotherDevicesNoSyncImu") {
 }
 
 TEST_CASE("LivoxPacket.NoSyncCadenceFlushesOnlyTheCurrentDevice") {
-  constexpr uint32_t kThirdHandle = 0x0300007f;
   Fixture fixture;
   fixture.points(100000000, 1, 0,
                  kLivoxLidarCartesianCoordinateHighData,
@@ -552,4 +558,29 @@ TEST_CASE("LivoxPacket.ZeroDotHeaderDoesNotChangeImuDecoding") {
   CHECK((imu.acc_y == 0.5f));
   CHECK((imu.acc_z == 1.0f));
   CHECK((fixture.handler.raw_packet_queue_.empty()));
+}
+
+TEST_CASE("LivoxPacket.UnconfiguredDevicesDoNotEnterPointOrImuProcessing") {
+  Fixture fixture;
+  const uint32_t unknown_handle = IpStringToNum("127.0.0.99");
+  fixture.points(kEpochNs, 1, 0, kLivoxLidarCartesianCoordinateHighData,
+                 kTimestampTypeGptpOrPtp, unknown_handle);
+  fixture.imu(kEpochNs, kTimestampTypeGptpOrPtp, unknown_handle);
+  CHECK(fixture.handler.raw_packet_queue_.empty());
+  CHECK(fixture.handler.lidar_process_handlers_.empty());
+  CHECK(fixture.handler.last_pub_times_.empty());
+  CHECK(fixture.frames.empty());
+  CHECK(fixture.imus.empty());
+
+  fixture.points(kEpochNs, 1, 0);
+  CHECK(fixture.pop().handle == kFirstHandle);
+  fixture.imu(kEpochNs, kTimestampTypeGptpOrPtp);
+  REQUIRE(fixture.imus.size() == 1);
+  CHECK(fixture.imus.front().handle == kFirstHandle);
+
+  fixture.handler.ClearAllLidarsExtrinsicParams();
+  fixture.points(kEpochNs + 1, 1, 0);
+  fixture.imu(kEpochNs + 1, kTimestampTypeGptpOrPtp);
+  CHECK(fixture.handler.raw_packet_queue_.empty());
+  CHECK(fixture.imus.size() == 1);
 }

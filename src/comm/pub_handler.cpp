@@ -41,6 +41,7 @@ namespace livox_ros {
 namespace {
 
 constexpr std::size_t kPacketHeaderSize = offsetof(LivoxLidarEthernetPacket, data);
+constexpr std::uint64_t kPacketDiagnosticInterval = 1000;
 
 std::size_t PointSizeForDataType(const uint8_t data_type) {
   switch (data_type) {
@@ -71,11 +72,20 @@ bool IsPacketLayoutValid(const LivoxLidarEthernetPacket * packet) {
 void ReportMalformedPacket(const LivoxLidarEthernetPacket * packet) {
   static std::atomic<std::uint64_t> invalid_packets{0};
   const std::uint64_t count = ++invalid_packets;
-  if (count == 1 || count % 1000 == 0) {
+  if (count == 1 || count % kPacketDiagnosticInterval == 0) {
     std::cerr << "drop malformed Livox packet length="
               << (packet == nullptr ? 0 : packet->length)
               << " type=" << (packet == nullptr ? 0 : packet->data_type)
               << " dots=" << (packet == nullptr ? 0 : packet->dot_num) << std::endl;
+  }
+}
+
+void ReportUnconfiguredDevice(uint32_t handle) {
+  static std::atomic<std::uint64_t> dropped_packets{0};
+  const std::uint64_t count = ++dropped_packets;
+  if (count == 1 || count % kPacketDiagnosticInterval == 0) {
+    std::cerr << "drop Livox packet from unconfigured ip="
+              << IpNumToString(handle) << " count=" << count << std::endl;
   }
 }
 
@@ -185,6 +195,15 @@ void PubHandler::OnLivoxLidarPointCloudCallback(uint32_t handle, const uint8_t d
                                                 LivoxLidarEthernetPacket *data, void *client_data) {
   PubHandler* self = (PubHandler*)client_data;
   if (!self) {
+    return;
+  }
+  bool configured = false;
+  {
+    std::lock_guard<std::mutex> lock(self->packet_mutex_);
+    configured = self->lidar_extrinsics_.find(handle) != self->lidar_extrinsics_.end();
+  }
+  if (!configured) {
+    ReportUnconfiguredDevice(handle);
     return;
   }
   if (!IsPacketLayoutValid(data)) {

@@ -37,6 +37,7 @@ namespace livox_ros {
 class CacheIndex {
  public:
   CacheIndex();
+  void Clear();
   int8_t GetFreeIndex(const uint8_t livox_lidar_type, const uint32_t handle, uint8_t& index);
   int8_t GetIndex(const uint8_t livox_lidar_type, const uint32_t handle, uint8_t& index);
   int8_t GenerateIndexKey(const uint8_t livox_lidar_type, const uint32_t handle, std::string& key);
