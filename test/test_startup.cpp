@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <deque>
+#include <dirent.h>
 #include <functional>
 #include <map>
 #include <memory>
@@ -31,6 +32,7 @@
 #include "lds_lidar.h"
 #undef private
 #include "call_back/livox_lidar_callback.h"
+#include "parse_cfg_file/parse_livox_lidar_cfg.h"
 
 namespace {
 using namespace livox_ros;
@@ -66,6 +68,18 @@ class ConfigFile {
  private:
   char path_[64] = "/tmp/livox-startup-contract-XXXXXX";
 };
+
+std::size_t openDescriptorCount() {
+  std::unique_ptr<DIR, int (*)(DIR*)> directory(
+      opendir("/proc/self/fd"), &closedir);
+  REQUIRE((directory != nullptr));
+  std::size_t count = 0;
+  while (const auto* entry = readdir(directory.get())) {
+    if (std::strcmp(entry->d_name, ".") != 0 &&
+        std::strcmp(entry->d_name, "..") != 0) ++count;
+  }
+  return count;
+}
 
 enum class Kind { DataType, Pattern, Blind, Dual, Attitude, WorkMode, Imu };
 struct Command {
@@ -526,4 +540,73 @@ TEST_CASE("LivoxStartup.EarlyNotificationUsesPreparedDevices") {
       CHECK((command.attitude.z == extrinsic.z));
     }
   }
+}
+
+
+TEST_CASE("LivoxConfig.RepeatedSuccessfulParsingClosesFilesAndKeepsFields") {
+  ConfigFile file;
+  LivoxLidarConfigParser parser(file.path());
+  std::vector<UserLivoxLidarConfig> configs;
+  const auto before = openDescriptorCount();
+  constexpr unsigned kParseRepetitions = 32;
+  for (unsigned iteration = 0; iteration < kParseRepetitions; ++iteration) {
+    CAPTURE(iteration);
+    REQUIRE((parser.Parse(configs)));
+    REQUIRE((configs.size() == 2));
+    CHECK((configs[0].handle == IpStringToNum("127.0.0.81")));
+    CHECK((configs[0].pcl_data_type == 1));
+    CHECK((configs[0].pattern_mode == 0));
+    CHECK((configs[0].blind_spot_set == 42));
+    CHECK((configs[0].dual_emit_en == 0));
+    CHECK((configs[0].extrinsic_param.roll == 1.25f));
+    CHECK((configs[0].extrinsic_param.pitch == -2.5f));
+    CHECK((configs[0].extrinsic_param.yaw == 3.75f));
+    CHECK((configs[0].extrinsic_param.x == 101));
+    CHECK((configs[0].extrinsic_param.y == -202));
+    CHECK((configs[0].extrinsic_param.z == 303));
+    CHECK((configs[0].set_bits == 0));
+    CHECK((configs[0].get_bits == 0));
+    CHECK((configs[1].handle == IpStringToNum("127.0.0.82")));
+    CHECK((configs[1].pcl_data_type == -1));
+    CHECK((configs[1].pattern_mode == -1));
+    CHECK((configs[1].blind_spot_set == -1));
+    CHECK((configs[1].dual_emit_en == -1));
+    CHECK((configs[1].extrinsic_param.roll == -4.5f));
+    CHECK((configs[1].extrinsic_param.pitch == 5.25f));
+    CHECK((configs[1].extrinsic_param.yaw == -6.75f));
+    CHECK((configs[1].extrinsic_param.x == -404));
+    CHECK((configs[1].extrinsic_param.y == 505));
+    CHECK((configs[1].extrinsic_param.z == -606));
+    CHECK((configs[1].set_bits == 0));
+    CHECK((configs[1].get_bits == 0));
+  }
+  CHECK((openDescriptorCount() == before));
+}
+
+TEST_CASE("LivoxConfig.RepeatedFailuresCloseFilesAndKeepExistingOutputRules") {
+  ConfigFile valid;
+  ConfigFile malformed("{");
+  ConfigFile empty(R"({"lidar_configs":[]})");
+  ConfigFile missing_array("{}");
+  ConfigFile missing_ip(R"({"lidar_configs":[{}]})");
+  std::vector<UserLivoxLidarConfig> configs;
+  REQUIRE((LivoxLidarConfigParser(valid.path()).Parse(configs)));
+  const auto original = configs;
+  const std::string missing_path = std::string(valid.path()) + ".missing";
+  const auto before = openDescriptorCount();
+  constexpr unsigned kParseRepetitions = 32;
+  for (unsigned iteration = 0; iteration < kParseRepetitions; ++iteration) {
+    CAPTURE(iteration);
+    for (const auto* path : {malformed.path(), empty.path(), missing_array.path(), missing_ip.path()}) {
+      configs = original;
+      CHECK_FALSE((LivoxLidarConfigParser(path).Parse(configs)));
+      CHECK((configs.empty()));
+    }
+    configs = original;
+    CHECK_FALSE((LivoxLidarConfigParser(missing_path).Parse(configs)));
+    REQUIRE((configs.size() == original.size()));
+    CHECK((configs[0].handle == original[0].handle));
+    CHECK((configs[0].extrinsic_param.x == original[0].extrinsic_param.x));
+  }
+  CHECK((openDescriptorCount() == before));
 }

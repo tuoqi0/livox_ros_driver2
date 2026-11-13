@@ -23,12 +23,15 @@
 //
 
 #include "parse_livox_lidar_cfg.h"
+#include <cstdio>
 #include <iostream>
+#include <memory>
 
 namespace livox_ros {
 
 bool LivoxLidarConfigParser::Parse(std::vector<UserLivoxLidarConfig> &lidar_configs) {
-  FILE* raw_file = std::fopen(path_.c_str(), "rb");
+  std::unique_ptr<std::FILE, int (*)(std::FILE*)> raw_file(
+      std::fopen(path_.c_str(), "rb"), &std::fclose);
   if (!raw_file) {
     std::cout << "failed to open config file: " << path_ << std::endl;
     return false;
@@ -36,7 +39,7 @@ bool LivoxLidarConfigParser::Parse(std::vector<UserLivoxLidarConfig> &lidar_conf
 
   lidar_configs.clear();
   char read_buffer[kMaxBufferSize];
-  rapidjson::FileReadStream config_file(raw_file, read_buffer, sizeof(read_buffer));
+  rapidjson::FileReadStream config_file(raw_file.get(), read_buffer, sizeof(read_buffer));
   rapidjson::Document doc;
 
   do {
@@ -57,7 +60,6 @@ bool LivoxLidarConfigParser::Parse(std::vector<UserLivoxLidarConfig> &lidar_conf
     return true;
   } while (false);
 
-  std::fclose(raw_file);
   return false;
 }
 
