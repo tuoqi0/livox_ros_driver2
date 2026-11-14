@@ -2,7 +2,7 @@
 
 本目录是 `slam_ws` 的 Livox ROS 2 Jazzy 驱动。它只保留 ROS 2 主线，直接发布 `sensor_msgs/PointCloud2` 或 `livox_ros_driver2/msg/CustomMsg`，不再构建 ROS 1、PCL 或 Boost 兼容分支。
 
-驱动只接收在线雷达数据（`data_src=0`），不直接读取 LVX/LVX2 录制文件。ROS 2 bag 使用 `ros2 bag play` 回放；LVX2 文件先用工作区的 `src/keel_lio/tools/lvx2_to_bag.py` 转换，步骤见 `src/keel_lio/tools/README.md`。
+驱动只接收在线雷达数据（`data_src=0`），不直接读取 LVX/LVX2 录制文件。ROS 2 bag 使用 `ros2 bag play` 回放；LVX2 文件在完整工作区构建并加载 Keel 环境后，用 `ros2 run keel_lio lvx2_to_bag` 转换；Jazzy Python 运行依赖、单位和回放步骤见 `src/keel_lio/tools/README.md`。
 
 ## 编译
 
