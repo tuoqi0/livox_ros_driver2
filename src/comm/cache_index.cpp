@@ -84,24 +84,6 @@ int8_t CacheIndex::GetIndex(const uint8_t livox_lidar_type, const uint32_t handl
   return -1;
 }
 
-int8_t CacheIndex::LvxGetIndex(const uint8_t livox_lidar_type, const uint32_t handle, uint8_t& index) {
-  std::string key;
-  int8_t ret = GenerateIndexKey(livox_lidar_type, handle, key);
-  if (ret != 0) {
-    return -1;
-  }
-
-  {
-    std::lock_guard<std::mutex> lock(index_mutex_);
-    if (map_index_.find(key) != map_index_.end()) {
-      index = map_index_[key];
-      return 0;
-    }
-  }
-
-  return GetFreeIndex(livox_lidar_type, handle, index);
-}
-
 void CacheIndex::ResetIndex(LidarDevice *lidar) {
   std::string key;
   int8_t ret = GenerateIndexKey(lidar->lidar_type, lidar->handle, key);

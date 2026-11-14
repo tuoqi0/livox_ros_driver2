@@ -63,7 +63,7 @@ void push(LidarDataQueue& queue, std::uint32_t sequence) {
 }  // namespace
 
 TEST_CASE("Livox point queue preserves rounded capacity and full queue drop policy") {
-  Lds source(10.0, 0);
+  Lds source(10.0);
   auto& queue = source.lidars_[0].data;
   REQUIRE((InitQueue(&queue, 3)));
   CHECK((queue.size == 4));
@@ -188,7 +188,7 @@ TEST_CASE("Livox point queue publishes complete packets from one real producer t
 }
 
 TEST_CASE("Livox cold idle exit wakes both existing point and IMU waiters") {
-  Lds source(10.0, 0);
+  Lds source(10.0);
   CHECK_FALSE((source.IsRequestExit()));
   CHECK((source.pcd_semaphore_.GetCount() == 0));
   CHECK((source.imu_semaphore_.GetCount() == 0));
@@ -269,6 +269,6 @@ TEST_CASE("Livox device cache allocates each handle once under concurrent discov
   device.handle = 1;
   cache.ResetIndex(&device);
   uint8_t recycled = 255;
-  REQUIRE((cache.LvxGetIndex(livox_ros::kLivoxLidarType, 1, recycled) == 0));
+  REQUIRE((cache.GetFreeIndex(livox_ros::kLivoxLidarType, 1, recycled) == 0));
   CHECK((recycled == indices[0].load()));
 }

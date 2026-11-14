@@ -53,7 +53,7 @@ class DriverNode;
 
 class Lddc final {
  public:
-  Lddc(int format, int multi_topic, int data_src, double frq,
+  Lddc(int format, int multi_topic, double frq,
       std::string &frame_id);
   ~Lddc();
 
@@ -103,7 +103,6 @@ class Lddc final {
  private:
   uint8_t transfer_format_;
   uint8_t use_multi_topic_;
-  uint8_t data_src_;
   double publish_frq_;
   uint32_t publish_period_ns_;
   std::string frame_id_;

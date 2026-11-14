@@ -56,7 +56,7 @@ LdsLidar *g_lds_ldiar = nullptr;
 
 /** Lds lidar function -------------------------------------------------------*/
 LdsLidar::LdsLidar(double publish_freq)
-    : Lds(publish_freq, kSourceRawLidar),
+    : Lds(publish_freq),
       auto_connect_mode_(true),
       whitelist_count_(0),
       is_initialized_(false) {
@@ -66,7 +66,7 @@ LdsLidar::LdsLidar(double publish_freq)
 
 LdsLidar::~LdsLidar() {}
 
-void LdsLidar::ResetLdsLidar(void) { ResetLds(kSourceRawLidar); }
+void LdsLidar::ResetLdsLidar(void) { ResetLds(); }
 
 
 

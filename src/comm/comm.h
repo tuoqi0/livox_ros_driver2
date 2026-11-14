@@ -107,13 +107,7 @@ typedef enum {
   kConnectStateSampling = 3,
 } LidarConnectState;
 
-/** Device data source type */
-typedef enum {
-  kSourceRawLidar = 0, /**< Data from raw lidar. */
-  kSourceRawHub = 1,   /**< Data from lidar hub. */
-  kSourceLvxFile,      /**< Data from parse lvx file. */
-  kSourceUndef,
-} LidarDataSourceType;
+constexpr uint8_t kSourceRawLidar = 0;
 
 typedef enum { kCoordinateCartesian = 0, kCoordinateSpherical } CoordinateType;
 
@@ -281,7 +275,6 @@ typedef struct {
   //   uint8_t slot : 4; //slot for LivoxLidarType::kVehicleLidarType
   //   uint8_t handle : 4;  // handle for LivoxLidarType::kIndustryLidarType
   // };
-  uint8_t data_src;                  /**< From raw lidar or livox file. */
   std::atomic<LidarConnectState> connect_state{kConnectStateOff};
   // DeviceInfo info;
 

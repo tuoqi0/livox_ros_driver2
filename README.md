@@ -1,6 +1,8 @@
 # Livox ROS 2 驱动
 
-本目录是 `slam_ws` 的 Livox ROS 2 Jazzy 驱动。它只保留 ROS 2 主线，直接发布 `sensor_msgs/PointCloud2` 或 `livox_interfaces2/CustomMsg`，不再构建 ROS 1、PCL 或 Boost 兼容分支。
+本目录是 `slam_ws` 的 Livox ROS 2 Jazzy 驱动。它只保留 ROS 2 主线，直接发布 `sensor_msgs/PointCloud2` 或 `livox_ros_driver2/msg/CustomMsg`，不再构建 ROS 1、PCL 或 Boost 兼容分支。
+
+驱动只接收在线雷达数据（`data_src=0`），不直接读取 LVX/LVX2 录制文件。ROS 2 bag 使用 `ros2 bag play` 回放；LVX2 文件先用工作区的 `src/keel_lio/tools/lvx2_to_bag.py` 转换，步骤见 `src/keel_lio/tools/README.md`。
 
 ## 编译
 
@@ -56,7 +58,7 @@ Keel 的 `map/nav` 使用 `multi_topic=0`，配置中应只选一台雷达。多
 
 单雷达模式下默认发布：
 
-- `/livox/lidar`：`PointCloud2` 或 `livox_interfaces2/CustomMsg`
+- `/livox/lidar`：`PointCloud2` 或 `livox_ros_driver2/msg/CustomMsg`
 - `/livox/imu`：`sensor_msgs/Imu`
 
 `PointCloud2` 的每点字段为 `x`、`y`、`z`、`intensity`、`tag`、`line` 和 `timestamp`。`timestamp` 是点的绝对纳秒时间以 `float64` 存储；`CustomMsg` 使用 `timebase` 加 `offset_time` 表示同一时间信息。

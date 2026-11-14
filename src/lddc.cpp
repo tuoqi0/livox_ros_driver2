@@ -40,11 +40,10 @@
 namespace livox_ros {
 
 /** Lidar Data Distribute Control--------------------------------------------*/
-Lddc::Lddc(int format, int multi_topic, int data_src,
+Lddc::Lddc(int format, int multi_topic,
            double frq, std::string &frame_id)
     : transfer_format_(format),
       use_multi_topic_(multi_topic),
-      data_src_(data_src),
       publish_frq_(frq),
       frame_id_(frame_id) {
   publish_period_ns_ = kNsPerSecond / publish_frq_;

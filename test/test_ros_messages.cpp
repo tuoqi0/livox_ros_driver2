@@ -71,9 +71,9 @@ TEST_CASE("DriverRosMessage.OrderedNativePointsKeepCustomAndPointCloud2TimeContr
   // The production LdsLidar singleton also has static storage. Ordinary Lds
   // keeps this test out of SDKInit and has the same zero-initialized queue
   // lifetime before its existing constructor calls ResetLds.
-  static Lds source(10.0, kSourceRawLidar);
+  static Lds source(10.0);
   std::string frame = "packet_contract_frame";
-  Lddc control(kLivoxCustomMsg, 0, kSourceRawLidar, 10.0,
+  Lddc control(kLivoxCustomMsg, 0, 10.0,
                frame);
   REQUIRE((control.RegisterLds(&source) == 0));
   source.lidars_[0].lidar_type = kLivoxLidarType;
@@ -171,9 +171,9 @@ TEST_CASE("DriverRosMessage.OrderedNativePointsKeepCustomAndPointCloud2TimeContr
 }
 
 TEST_CASE("DriverRosMessage.UnsupportedPclFormatConsumesQueuedPacket") {
-  static Lds source(10.0, kSourceRawLidar);
+  static Lds source(10.0);
   std::string frame = "unsupported_format_frame";
-  Lddc control(static_cast<int>(99), 0, kSourceRawLidar, 10.0, frame);
+  Lddc control(static_cast<int>(99), 0, 10.0, frame);
   REQUIRE((control.RegisterLds(&source) == 0));
   source.lidars_[0].connect_state = kConnectStateSampling;
   REQUIRE((InitQueue(&source.lidars_[0].data, 8)));
@@ -193,7 +193,7 @@ TEST_CASE("DriverRosMessage.UnsupportedPclFormatConsumesQueuedPacket") {
 
 TEST_CASE("DriverRosMessage.ImuPackingPreservesRawRadiansAndGUnits") {
   std::string frame = "unused_lidar_frame";
-  Lddc control(kLivoxCustomMsg, 0, kSourceRawLidar, 10.0,
+  Lddc control(kLivoxCustomMsg, 0, 10.0,
                frame);
   ImuData raw{};
   raw.time_stamp = 1700000000000000123ULL;
@@ -219,9 +219,9 @@ TEST_CASE("DriverRosMessage.ImuPackingPreservesRawRadiansAndGUnits") {
 }
 
 TEST_CASE("DriverRosMessage.RequestExitReleasesBothColdDistributeWaits") {
-  static Lds source(10.0, kSourceRawLidar);
+  static Lds source(10.0);
   std::string frame = "cold_exit_contract";
-  Lddc control(kLivoxCustomMsg, 0, kSourceRawLidar, 10.0,
+  Lddc control(kLivoxCustomMsg, 0, 10.0,
                frame);
   REQUIRE((control.RegisterLds(&source) == 0));
   REQUIRE_FALSE((source.IsRequestExit()));

@@ -10,7 +10,6 @@ multi_topic   = 0    # 0-All LiDARs share the same topic, 1-One LiDAR one topic
 data_src      = 0    # 0-lidar, others-Invalid data src
 publish_freq  = 10.0 # freqency of publish, 5.0, 10.0, 20.0, 50.0, etc.
 frame_id      = 'livox_frame'
-lvx_file_path = '/home/livox/livox_test.lvx'
 
 cur_path = os.path.split(os.path.realpath(__file__))[0] + '/'
 cur_config_path = cur_path + '../config'
@@ -24,7 +23,6 @@ livox_ros2_params = [
     {"data_src": data_src},
     {"publish_freq": publish_freq},
     {"frame_id": frame_id},
-    {"lvx_file_path": lvx_file_path},
     {"user_config_path": user_config_path}
 ]
 

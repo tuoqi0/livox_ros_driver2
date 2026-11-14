@@ -110,7 +110,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME}
   ${LIVOX_LIDAR_SDK_LIBRARY}
   ${LIVOX_INTERFACE_TARGET}   # for custom msgs
-  ${PPT_LIBRARY}
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
