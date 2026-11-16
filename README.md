@@ -24,14 +24,27 @@ colcon build --base-paths src --packages-select livox_ros_driver2 \
 
 ## 启动与配置
 
-驱动启动文件位于 `launch_ROS2/`，按设备选择对应文件：
+本包只提供驱动节点和设备 JSON，不再安装独立的 ROS 1/旧版 launch 目录。
+建图或定位时使用 Keel 的统一入口，它会自动启动一个驱动进程：
 
 ```bash
-ros2 launch livox_ros_driver2 msg_MID360_launch.py
-ros2 launch livox_ros_driver2 rviz_MID360_launch.py
+ros2 launch keel_lio map.launch.py config:=mid360s.yaml
+ros2 launch keel_lio nav.launch.py config:=mid360s.yaml \
+  prior_pcd_file:=/data/maps/site/map.pcd
 ```
 
-启动文件中的 `user_config_path` 指向 `config/` 下的设备 JSON。修改 JSON 前确认设备 IP、主机网卡和 `pcl_data_type` 与实际雷达一致；这里的 `pcl_data_type` 是 Livox SDK 的线缆数据编码，不是 PCL 库依赖。
+需要单独检查驱动时，直接运行安装后的节点，并传入设备 JSON：
+
+```bash
+ros2 run livox_ros_driver2 livox_ros_driver2_node --ros-args \
+  -p xfer_format:=1 -p multi_topic:=0 -p data_src:=0 \
+  -p publish_freq:=10.0 -p frame_id:=livox_frame \
+  -p user_config_path:="$(ros2 pkg prefix livox_ros_driver2)/share/livox_ros_driver2/config/MID360_config.json"
+```
+
+`user_config_path` 指向 `config/` 下的设备 JSON。修改 JSON 前确认设备 IP、主机网卡和
+`pcl_data_type` 与实际雷达一致；这里的 `pcl_data_type` 是 Livox SDK 的线缆数据编码，
+不是 PCL 库依赖。实机使用 `map/nav` 时不要再单独启动上面的节点。
 
 驱动参数只有 ROS 2 发布所需的主线参数：
 
