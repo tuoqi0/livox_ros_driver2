@@ -26,14 +26,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <memory>
-#include <mutex>
-#include <thread>
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
 #include "livox_lidar_api.h"
 #include "comm/comm.h"
 #include "comm/pub_handler.h"
@@ -44,7 +37,6 @@
 #include "call_back/lidar_common_callback.h"
 #include "call_back/livox_lidar_callback.h"
 
-using namespace std;
 
 namespace livox_ros {
 
