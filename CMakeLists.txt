@@ -131,19 +131,3 @@ ament_auto_package(INSTALL_TO_SHARE
   config
   launch_ROS2
 )
-
-## Testing ##
-if(BUILD_TESTING)
-  find_package(robot_core CONFIG REQUIRED)
-  include(${robot_core_DIR}/robot_coreTests.cmake)
-  robot_core_add_test(test_imu_extrinsic test/test_imu_extrinsic.cpp)
-  target_include_directories(test_imu_extrinsic PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-  foreach(contract IN ITEMS packet queue_exit ros_messages startup)
-    robot_core_add_test(test_${contract} test/test_${contract}.cpp)
-    target_include_directories(test_${contract} PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
-      ${LIVOX_LIDAR_SDK_INCLUDE_DIR})
-    target_link_libraries(test_${contract} ${PROJECT_NAME})
-    set_tests_properties(test_${contract} PROPERTIES TIMEOUT 20)
-  endforeach()
-endif()

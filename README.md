@@ -66,19 +66,7 @@ Keel 的 `map/nav` 使用 `multi_topic=0`，配置中应只选一台雷达。多
 驱动入口会丢弃空点云、未知数据类型、长度不足或载荷越界的 SDK 包，并记录节流诊断。IMU 包按其协议长度单独校验。坏包不会进入下游定位。
 
 ## 测试
-
-构建测试并运行驱动行为回归：
-
-```bash
-colcon build --base-paths src --packages-select livox_ros_driver2 \
-  --cmake-args -DBUILD_TESTING=ON
-source install/setup.bash
-cd build/livox_ros_driver2
-ctest --output-on-failure -R \
-  'test_imu_extrinsic|test_packet|test_queue_exit|test_ros_messages|test_startup'
-```
-
-测试覆盖 SDK 包边界、队列退出、点云/IMU 消息编码、外参发布和启动配置；其中 `test_ros_messages` 还验证非法点云格式会消费队列后退出，不会让发布线程空转。
+驱动通过 Keel 的实际 ROS 输入链路验证；本包不再维护与生产链路重复的纯 SDK 单测。
 
 ## 与 SLAM 的连接
 
