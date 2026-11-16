@@ -1,5 +1,3 @@
-# Copyright(c) 2020 livoxtech limited.
-
 cmake_minimum_required(VERSION 3.14)
 project(livox_ros_driver2)
 
