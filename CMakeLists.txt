@@ -101,6 +101,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   ${LIVOX_LIDAR_SDK_INCLUDE_DIR}
   ${LIVOX_INTERFACES_INCLUDE_DIRECTORIES}   # for custom msgs
   3rdparty
+  include
   src
 )
 

@@ -24,7 +24,7 @@
 #include <robot_core/test/doctest.h>
 
 #include "include/ros_headers.h"
-#include "include/livox_ros_driver2.h"
+#include <livox_ros_driver2/livox_ros_driver2.h>
 #include "driver_node.h"
 #include "lds.h"
 #include "comm/pub_handler.h"

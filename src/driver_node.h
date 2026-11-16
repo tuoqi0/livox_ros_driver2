@@ -2,7 +2,7 @@
 #ifndef LIVOX_DRIVER_NODE_H
 #define LIVOX_DRIVER_NODE_H
 
-#include "include/ros_headers.h"
+#include <livox_ros_driver2/ros_headers.h>
 
 namespace livox_ros {
 
