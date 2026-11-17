@@ -573,7 +573,6 @@ void LidarPubHandler::ProcessDoubleEchoPoint(RawPacket& pkt)
   LivoxLidarDoubleEchoRawPoint* raw = (LivoxLidarDoubleEchoRawPoint*)pkt.raw_data.data();
   PointXyzlt point1 = {};
   PointXyzlt point2 = {};
-  uint32_t index = 0;
   for (uint32_t i = 0; i < pkt.point_num; i++) {
     if (pkt.extrinsic_enable) {
       point1.x = raw[i].x1 / 1000.0;
