@@ -47,17 +47,8 @@ rosidl_generate_interfaces(${LIVOX_INTERFACES}
   LIBRARY_NAME ${PROJECT_NAME}
 )
 
-## The SDK the workspace ships, not whatever sits in /usr/local. Searching
-## The workspace SDK is authoritative.
-find_package(Livox-SDK2 QUIET)
-if(Livox-SDK2_FOUND)
-  set(LIVOX_LIDAR_SDK_LIBRARY ${Livox-SDK2_SHARED_LIBRARY})
-  set(LIVOX_LIDAR_SDK_INCLUDE_DIR ${Livox-SDK2_INCLUDE_DIRS})
-else()
-  find_library(LIVOX_LIDAR_SDK_LIBRARY NAMES livox_lidar_sdk_shared REQUIRED)
-  find_path(LIVOX_LIDAR_SDK_INCLUDE_DIR NAMES livox_lidar_api.h REQUIRED)
-endif()
-message(STATUS "livox sdk: ${LIVOX_LIDAR_SDK_LIBRARY} (headers ${LIVOX_LIDAR_SDK_INCLUDE_DIR})")
+# Resolve the SDK exported by the workspace's declared build dependency.
+find_package(Livox-SDK2 REQUIRED)
 
 # livox ros2 driver target
 ament_auto_add_library(${PROJECT_NAME} SHARED
@@ -81,34 +72,17 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
   src/call_back/livox_lidar_callback.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${LIVOX_LIDAR_SDK_INCLUDE_DIR})
-
-# get include directories of custom msg headers
-# Humble onwards. Tested by existence rather than by distro name, so a distro
-# newer than this file does not silently fall into the pre-Humble branch.
-if(COMMAND rosidl_get_typesupport_target)
-  rosidl_get_typesupport_target(cpp_typesupport_target
+rosidl_get_typesupport_target(cpp_typesupport_target
   ${LIVOX_INTERFACES} "rosidl_typesupport_cpp")
-  target_link_libraries(${PROJECT_NAME} "${cpp_typesupport_target}")
-else()
-  set(LIVOX_INTERFACE_TARGET "${LIVOX_INTERFACES}__rosidl_typesupport_cpp")
-  add_dependencies(${PROJECT_NAME} ${LIVOX_INTERFACES})
-  get_target_property(LIVOX_INTERFACES_INCLUDE_DIRECTORIES ${LIVOX_INTERFACE_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
-endif()
 
-# include file direcotry
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${LIVOX_LIDAR_SDK_INCLUDE_DIR}
-  ${LIVOX_INTERFACES_INCLUDE_DIRECTORIES}   # for custom msgs
   3rdparty
   include
   src
 )
-
-# link libraries
 target_link_libraries(${PROJECT_NAME}
-  ${LIVOX_LIDAR_SDK_LIBRARY}
-  ${LIVOX_INTERFACE_TARGET}   # for custom msgs
+  livox_sdk2::shared
+  "${cpp_typesupport_target}"
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}
@@ -135,9 +109,6 @@ if(BUILD_TESTING)
     "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.hxx")
   set(AMENT_LINT_AUTO_FILE_EXCLUDE ${_livox_third_party_lint_exclude})
-  # the following line skips cpplint (only works in a git repo)
-  # uncomment the line when this package is not in a git repo
-  #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
 

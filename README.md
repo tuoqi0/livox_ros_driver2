@@ -10,15 +10,19 @@
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-colcon build --base-paths src --packages-up-to livox_ros_driver2 \
+CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --base-paths src --packages-up-to livox_ros_driver2 \
   --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 ```
 
+上述构建先安装仓内 `Livox-SDK2`，驱动通过 `find_package(Livox-SDK2 REQUIRED)`
+链接其 `livox_sdk2::shared` 导出目标。独立重新编译也需先 source 同一安装；不再根据
+系统库文件名猜测 SDK，缺少所声明的 SDK 时配置会失败。
+
 只重新编译驱动时：
 
 ```bash
-colcon build --base-paths src --packages-select livox_ros_driver2 \
+CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --base-paths src --packages-select livox_ros_driver2 \
   --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
@@ -79,7 +83,19 @@ Keel 的 `map/nav` 使用 `multi_topic=0`，配置中应只选一台雷达。多
 驱动入口会丢弃空点云、未知数据类型、长度不足或载荷越界的 SDK 包，并记录节流诊断。IMU 包按其协议长度单独校验。坏包不会进入下游定位。
 
 ## 测试
-驱动通过 Keel 的实际 ROS 输入链路验证；本包不再维护与生产链路重复的纯 SDK 单测。
+
+按工作区说明启用 `BUILD_TESTING` 后，运行已有 ament 静态检查：
+
+```bash
+colcon test --base-paths src --packages-select livox_ros_driver2 \
+  --event-handlers console_direct+
+colcon test-result --verbose
+```
+
+使用自定义目录时，`colcon test` 补上实际的 `--build-base`、`--install-base`；
+`colcon test-result` 使用 `--test-result-base` 指向该 build 目录。
+Keel 的合成 ROS 输入测试不经过 SDK/驱动收包；库构建和静态检查不能代替真实
+雷达的 UDP、设备发现、时间同步或多设备测试。不要据此宣称驱动硬件链路已验收。
 
 ## 与 SLAM 的连接
 
