@@ -66,7 +66,6 @@ class PubHandler {
 
   void Uninit();
   void RequestExit();
-  void Init();
   void SetPointCloudConfig(const double publish_freq);
   void SetPointCloudsCallback(PointCloudsCallback cb, void* client_data);
   void AddLidarsExtParam(LidarExtParameter& extrinsic_params);

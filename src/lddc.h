@@ -30,7 +30,7 @@ class DriverNode;
 
 class Lddc final {
  public:
-  Lddc(int format, int multi_topic, double frq,
+  Lddc(int format, int multi_topic,
       std::string &frame_id);
   ~Lddc();
 
@@ -39,12 +39,7 @@ class Lddc final {
   void DistributeImuData(void);
   void PrepareExit(void);
 
-  uint8_t GetTransferFormat(void) { return transfer_format_; }
-  uint8_t IsMultiTopic(void) { return use_multi_topic_; }
   void SetRosNode(livox_ros::DriverNode *node) { cur_node_ = node; }
-
-  // void SetRosPub(ros::Publisher *pub) { global_pub_ = pub; };  // NOT USED
-  void SetPublishFrq(uint32_t frq) { publish_frq_ = frq; }
 
  public:
   Lds *lds_;
@@ -69,9 +64,6 @@ class Lddc final {
 
   void InitImuMsg(const ImuData& imu_data, ImuMsg& imu_msg, uint64_t& timestamp);
 
-  void FillPointsToCustomMsg(CustomMsg& livox_msg, LivoxPointXyzrtlt* src_point, uint32_t num,
-      uint32_t offset_time, uint32_t point_interval, uint32_t echo_num);
-
   PublisherPtr CreatePublisher(uint8_t msg_type, std::string &topic_name, uint32_t queue_size);
 
   PublisherPtr GetCurrentPublisher(uint8_t index);
@@ -80,8 +72,6 @@ class Lddc final {
  private:
   uint8_t transfer_format_;
   uint8_t use_multi_topic_;
-  double publish_frq_;
-  uint32_t publish_period_ns_;
   std::string frame_id_;
 
   PublisherPtr private_pub_[kMaxSourceLidar];

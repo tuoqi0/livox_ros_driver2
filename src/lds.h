@@ -30,10 +30,6 @@ class Lds {
 
   void RequestExit();
 
-  bool IsAllQueueEmpty();
-  bool IsAllQueueReadStop();
-
-  void CleanRequestExit() { request_exit_.store(false, std::memory_order_release); }
   bool IsRequestExit() { return request_exit_.load(std::memory_order_acquire); }
   virtual void PrepareExit(void);
 

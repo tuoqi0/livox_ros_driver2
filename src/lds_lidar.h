@@ -46,11 +46,6 @@ class LdsLidar final : public Lds {
 
   void SetLidarPubHandle();
 
-	// auto connect mode
-	void EnableAutoConnectMode(void) { auto_connect_mode_ = true; }
-  void DisableAutoConnectMode(void) { auto_connect_mode_ = false; }
-  bool IsAutoConnectMode(void) { return auto_connect_mode_; }
-
   virtual void PrepareExit(void);
 
  public:
@@ -60,10 +55,7 @@ class LdsLidar final : public Lds {
   std::string path_;
   LidarSummaryInfo lidar_summary_info_;
 
-  bool auto_connect_mode_;
-  uint32_t whitelist_count_;
   volatile bool is_initialized_;
-  char broadcast_code_whitelist_[kMaxLidarCount][kBroadcastCodeSize];
 };
 
 }  // namespace livox_ros

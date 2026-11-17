@@ -4,10 +4,6 @@
 
 namespace livox_ros {
 
-DriverNode& DriverNode::GetNode() noexcept {
-  return *this;
-}
-
 DriverNode::~DriverNode() {
   lddc_ptr_->lds_->RequestExit();
   exit_signal_.set_value();

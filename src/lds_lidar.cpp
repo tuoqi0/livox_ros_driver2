@@ -2,7 +2,6 @@
 #include "lds_lidar.h"
 
 #include <stdio.h>
-#include <string.h>
 
 #include "livox_lidar_api.h"
 #include "comm/comm.h"
@@ -26,10 +25,7 @@ LdsLidar *g_lds_ldiar = nullptr;
 /** Lds lidar function -------------------------------------------------------*/
 LdsLidar::LdsLidar(double publish_freq)
     : Lds(publish_freq),
-      auto_connect_mode_(true),
-      whitelist_count_(0),
       is_initialized_(false) {
-  memset(broadcast_code_whitelist_, 0, sizeof(broadcast_code_whitelist_));
   ResetLdsLidar();
 }
 

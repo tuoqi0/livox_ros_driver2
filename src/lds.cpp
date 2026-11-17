@@ -50,25 +50,6 @@ void Lds::RequestExit() {
   imu_semaphore_.Signal();
 }
 
-bool Lds::IsAllQueueEmpty() {
-  for (int i = 0; i < lidar_count_; i++) {
-    if (!QueueIsEmpty(&lidars_[i].data)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool Lds::IsAllQueueReadStop() {
-  for (int i = 0; i < lidar_count_; i++) {
-    uint32_t data_size = QueueUsedSize(&lidars_[i].data);
-    if (data_size) {
-      return false;
-    }
-  }
-  return true;
-}
-
 void Lds::StorageImuData(ImuData* imu_data) {
   uint32_t device_num = 0;
   if (imu_data->lidar_type == kLivoxLidarType) {

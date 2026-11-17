@@ -9,7 +9,7 @@
 #include <math.h>
 #include <stdint.h>
 
-#include <livox_ros_driver2/ros_headers.h>
+#include <livox_ros_driver2/ros2_headers.h>
 
 #include "driver_node.h"
 #include "lds_lidar.h"
@@ -18,12 +18,10 @@ namespace livox_ros {
 
 /** Lidar Data Distribute Control--------------------------------------------*/
 Lddc::Lddc(int format, int multi_topic,
-           double frq, std::string &frame_id)
+           std::string &frame_id)
     : transfer_format_(format),
       use_multi_topic_(multi_topic),
-      publish_frq_(frq),
       frame_id_(frame_id) {
-  publish_period_ns_ = kNsPerSecond / publish_frq_;
   lds_ = nullptr;
 }
 

@@ -2,7 +2,7 @@
 #ifndef LIVOX_DRIVER_NODE_H
 #define LIVOX_DRIVER_NODE_H
 
-#include <livox_ros_driver2/ros_headers.h>
+#include <livox_ros_driver2/ros2_headers.h>
 
 namespace livox_ros {
 
@@ -14,8 +14,6 @@ class DriverNode final : public rclcpp::Node {
   DriverNode(const DriverNode &) = delete;
   ~DriverNode();
   DriverNode &operator=(const DriverNode &) = delete;
-
-  DriverNode& GetNode() noexcept;
 
  private:
   void PointCloudDataPollThread();

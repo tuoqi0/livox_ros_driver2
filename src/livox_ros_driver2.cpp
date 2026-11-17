@@ -7,7 +7,7 @@
 #include <stdexcept>
 
 #include <livox_ros_driver2/livox_ros_driver2.h>
-#include <livox_ros_driver2/ros_headers.h>
+#include <livox_ros_driver2/ros2_headers.h>
 #include "driver_node.h"
 #include "lddc.h"
 #include "lds_lidar.h"
@@ -58,7 +58,7 @@ DriverNode::DriverNode(const rclcpp::NodeOptions & node_options)
   future_ = exit_signal_.get_future();
 
   /** Lidar data distribute control and lidar data source set */
-  lddc_ptr_ = std::make_unique<Lddc>(xfer_format, multi_topic, publish_freq, frame_id);
+  lddc_ptr_ = std::make_unique<Lddc>(xfer_format, multi_topic, frame_id);
   lddc_ptr_->SetRosNode(this);
 
   if (data_src == kSourceRawLidar) {

@@ -81,9 +81,6 @@ PubHandler &pub_handler() {
   return handler;
 }
 
-void PubHandler::Init() {
-}
-
 void PubHandler::Uninit() {
   if (lidar_listen_id_ > 0) {
     LivoxLidarRemovePointCloudObserver(lidar_listen_id_);
@@ -96,8 +93,6 @@ void PubHandler::Uninit() {
     point_process_thread_->joinable()) {
     point_process_thread_->join();
     point_process_thread_ = nullptr;
-  } else {
-    /* */
   }
 }
 
