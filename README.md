@@ -32,8 +32,8 @@ CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --base-paths src --packages-select liv
 建图或定位时使用 Keel 的统一入口，它会自动启动一个驱动进程：
 
 ```bash
-ros2 launch keel_lio map.launch.py config:=mid360s.yaml
-ros2 launch keel_lio nav.launch.py config:=mid360s.yaml \
+ros2 launch keel_lio map.launch.py config:=mid360.yaml
+ros2 launch keel_lio nav.launch.py config:=mid360.yaml \
   prior_pcd_file:=/data/maps/site/map.pcd
 ```
 
