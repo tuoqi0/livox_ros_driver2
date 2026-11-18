@@ -76,7 +76,6 @@ rosidl_get_typesupport_target(cpp_typesupport_target
   ${LIVOX_INTERFACES} "rosidl_typesupport_cpp")
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  3rdparty
   include
   src
 )
@@ -99,16 +98,6 @@ if(BUILD_TESTING)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   set(ament_cmake_uncrustify_FOUND TRUE)
-  file(GLOB_RECURSE _livox_third_party_lint_exclude CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.cc"
-    "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.hh"
-    "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/*.hxx")
-  set(AMENT_LINT_AUTO_FILE_EXCLUDE ${_livox_third_party_lint_exclude})
   ament_lint_auto_find_test_dependencies()
 endif()
 
