@@ -557,3 +557,33 @@ targets:
               - builtin_interfaces::builtin_interfaces__rosidl_typesupport_cpp
           livox_ros_driver2::livox_interfaces2__rosidl_generator_py:
             target: livox_interfaces2__rosidl_generator_py
+  livox_lint_cppcheck:
+    kind: command
+    command:
+      - '{ros_root}/bin/ament_cppcheck'
+      - include
+      - src
+      - --include_dirs
+      - include
+      - src
+      - --xunit-file
+      - '{build}/test-results/livox_cppcheck.xunit.xml'
+  livox_lint_flake8:
+    kind: command
+    command:
+      - '{ros_root}/bin/ament_flake8'
+      - tools
+  livox_lint_pep257:
+    kind: command
+    command:
+      - '{ros_root}/bin/ament_pep257'
+      - tools
+  livox_lint_xml:
+    kind: command
+    command:
+      - xmllint
+      - --nonet
+      - --noout
+      - --schema
+      - '{workspace}/src/interface/tools/ros_schema/package_format3.xsd'
+      - package.xml

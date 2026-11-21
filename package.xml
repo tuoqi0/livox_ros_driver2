@@ -7,10 +7,8 @@
   <maintainer email="871609336@qq.com">Qi Tuo</maintainer>
   <license>Proprietary</license>
 
-  <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <build_depend>rosidl_default_generators</build_depend>
 
-  <!-- Colcon builds the SDK first and propagates its exported CMake target. -->
   <depend>Livox-SDK2</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
@@ -20,11 +18,13 @@
 
   <exec_depend>rosidl_default_runtime</exec_depend>
 
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_cppcheck</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>libxml2-utils</test_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>
 
   <export>
-    <build_type>ament_cmake</build_type>
+    <build_type>rc</build_type>
   </export>
 </package>

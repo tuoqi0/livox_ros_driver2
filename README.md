@@ -9,22 +9,13 @@
 在 Jazzy 容器或同等 ROS 2 环境中，从工作区根目录执行：
 
 ```bash
-source /opt/ros/jazzy/setup.bash
-CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --base-paths src --packages-up-to livox_ros_driver2 \
-  --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release
-source install/setup.bash
+rc install -j2 --prefix install/rc livox_ros_driver2_node livox_ros_driver2_python_typesupport
+source install/rc/setup.bash
+ros2 pkg executables livox_ros_driver2
 ```
 
-上述构建先安装仓内 `Livox-SDK2`，驱动通过 `find_package(Livox-SDK2 REQUIRED)`
-链接其 `livox_sdk2::shared` 导出目标。独立重新编译也需先 source 同一安装；不再根据
-系统库文件名猜测 SDK，缺少所声明的 SDK 时配置会失败。
-
-只重新编译驱动时：
-
-```bash
-CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --base-paths src --packages-select livox_ros_driver2 \
-  --executor sequential --cmake-args -DCMAKE_BUILD_TYPE=Release
-```
+RC 工作区的构建图会编译 SDK、生成消息类型支持，并安装驱动节点和 MID360 配置。
+外部 CMake 消费者可以从同一前缀使用已安装的 SDK 与驱动导出。
 
 ## 启动与配置
 
@@ -84,16 +75,14 @@ Keel 的 `map/nav` 使用 `multi_topic=0`，配置中应只选一台雷达。多
 
 ## 测试
 
-按工作区说明启用 `BUILD_TESTING` 后，运行已有 ament 静态检查：
-
 ```bash
-colcon test --base-paths src --packages-select livox_ros_driver2 \
-  --event-handlers console_direct+
-colcon test-result --verbose
+source /opt/ros/jazzy/setup.bash
+(cd src/livox_ros_driver2 && ament_flake8 && ament_pep257 && ament_xmllint)
+(cd src/livox_ros_driver2 && ament_cppcheck)
 ```
 
-使用自定义目录时，`colcon test` 补上实际的 `--build-base`、`--install-base`；
-`colcon test-result` 使用 `--test-result-base` 指向该 build 目录。
+Jazzy 的 ament 会跳过已知耗时异常的 cppcheck 2.13.0，跳过时返回 188。
+
 Keel 的合成 ROS 输入测试不经过 SDK/驱动收包；库构建和静态检查不能代替真实
 雷达的 UDP、设备发现、时间同步或多设备测试。不要据此宣称驱动硬件链路已验收。
 
