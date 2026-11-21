@@ -1,6 +1,6 @@
 ros = { distro = "jazzy" }
 
-default = ["livox_ros_driver2_node", "livox_ros_driver2_s__rosidl_typesupport_c"]
+default = ["livox_ros_driver2_node", "livox_ros_driver2_python_typesupport"]
 
 [targets.livox_msgs]
 kind = "generate"
@@ -118,6 +118,8 @@ outputs = [
   "src/rosidl_typesupport_cpp/msg/custom_msg__type_support.cpp",
   "src/rosidl_typesupport_cpp/msg/custom_point__type_support.cpp",
   "src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_c.c",
+  "src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_fastrtps_c.c",
+  "src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_introspection_c.c",
   "src/rosidl_generator_py/msg/_custom_msg_s.c",
   "src/rosidl_generator_py/msg/_custom_point_s.c",
   "python/__init__.py",
@@ -321,6 +323,42 @@ sources = ["@livox_msgs/src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_t
 artifact_name = "{python_site}/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_c.so"
 install = true
 
+[targets.livox_ros_driver2_s__rosidl_typesupport_fastrtps_c]
+kind = "shared"
+std = "gnu11"
+deps = [
+  "livox_ros_driver2__rosidl_typesupport_fastrtps_c",
+  "livox_ros_driver2__rosidl_typesupport_c",
+  "livox_interfaces2__rosidl_generator_py",
+]
+sources = [
+  "@livox_msgs/src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_fastrtps_c.c",
+]
+artifact_name = "{python_site}/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_fastrtps_c.so"
+install = true
+
+[targets.livox_ros_driver2_s__rosidl_typesupport_introspection_c]
+kind = "shared"
+std = "gnu11"
+deps = [
+  "livox_ros_driver2__rosidl_typesupport_introspection_c",
+  "livox_ros_driver2__rosidl_typesupport_c",
+  "livox_interfaces2__rosidl_generator_py",
+]
+sources = [
+  "@livox_msgs/src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_introspection_c.c",
+]
+artifact_name = "{python_site}/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_introspection_c.so"
+install = true
+
+[targets.livox_ros_driver2_python_typesupport]
+kind = "interface"
+deps = [
+  "livox_ros_driver2_s__rosidl_typesupport_c",
+  "livox_ros_driver2_s__rosidl_typesupport_fastrtps_c",
+  "livox_ros_driver2_s__rosidl_typesupport_introspection_c",
+]
+
 [targets.livox_node_entry]
 kind = "generate"
 command = [
@@ -451,7 +489,7 @@ install = true
 
 [targets.livox_rosidl_package]
 kind = "interface"
-deps = ["livox_ros_driver2__rosidl_typesupport_c", "livox_ros_driver2__rosidl_typesupport_cpp", "livox_ros_driver2_s__rosidl_typesupport_c"]
+deps = ["livox_ros_driver2__rosidl_typesupport_c", "livox_ros_driver2__rosidl_typesupport_cpp", "livox_ros_driver2_python_typesupport"]
 install = true
 [targets.livox_rosidl_package.cmake]
 directory = "share/livox_ros_driver2/cmake"
