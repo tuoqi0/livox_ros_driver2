@@ -1,0 +1,559 @@
+ros:
+  distro: jazzy
+default:
+  - livox_ros_driver2_node
+  - livox_ros_driver2_python_typesupport
+targets:
+  livox_msgs:
+    kind: generate
+    command:
+      - /usr/bin/python3
+      - '{module}/../interface/tools/rosidl_generate.py'
+      - --package
+      - livox_ros_driver2
+      - --target-prefix
+      - livox_interfaces2
+      - --root
+      - '{module}'
+      - --sdk
+      - '{ros_root}'
+      - --out
+      - '{out}'
+      - --dependency
+      - std_msgs
+      - --dependency
+      - builtin_interfaces
+      - msg/CustomMsg.msg
+      - msg/CustomPoint.msg
+    inputs:
+      - ../interface/tools/rosidl_generate.py
+      - package.xml
+      - msg/CustomMsg.msg
+      - msg/CustomPoint.msg
+      - '{ros_root}/share/std_msgs/msg/Header.idl'
+      - '{ros_root}/share/std_msgs/msg/Header.json'
+      - '{ros_root}/share/builtin_interfaces/msg/Time.idl'
+      - '{ros_root}/share/builtin_interfaces/msg/Time.json'
+      - '{ros_root}/share/rosidl_adapter/package.xml'
+      - '{ros_root}/share/rosidl_generator_type_description/package.xml'
+      - '{ros_root}/share/rosidl_generator_c/package.xml'
+      - '{ros_root}/share/rosidl_generator_cpp/package.xml'
+      - '{ros_root}/share/rosidl_typesupport_introspection_c/package.xml'
+      - '{ros_root}/share/rosidl_typesupport_introspection_cpp/package.xml'
+      - '{ros_root}/share/rosidl_typesupport_fastrtps_c/package.xml'
+      - '{ros_root}/share/rosidl_typesupport_fastrtps_cpp/package.xml'
+      - '{ros_root}/share/rosidl_typesupport_c/package.xml'
+      - '{ros_root}/share/rosidl_typesupport_cpp/package.xml'
+      - '{ros_root}/share/rosidl_generator_py/package.xml'
+      - '{ros_root}/lib/rosidl_generator_type_description/rosidl_generator_type_description'
+      - '{ros_root}/lib/rosidl_generator_c/rosidl_generator_c'
+      - '{ros_root}/lib/rosidl_generator_cpp/rosidl_generator_cpp'
+      - '{ros_root}/lib/rosidl_typesupport_introspection_c/rosidl_typesupport_introspection_c'
+      - '{ros_root}/lib/rosidl_typesupport_introspection_cpp/rosidl_typesupport_introspection_cpp'
+      - '{ros_root}/lib/rosidl_typesupport_fastrtps_c/rosidl_typesupport_fastrtps_c'
+      - '{ros_root}/lib/rosidl_typesupport_fastrtps_cpp/rosidl_typesupport_fastrtps_cpp'
+      - '{ros_root}/lib/rosidl_typesupport_c/rosidl_typesupport_c'
+      - '{ros_root}/lib/rosidl_typesupport_cpp/rosidl_typesupport_cpp'
+      - '{ros_root}/lib/rosidl_generator_py/rosidl_generator_py'
+      - '{ros_root}/share/rosidl_generator_c/resource/rosidl_generator_c__visibility_control.h.in'
+      - '{ros_root}/share/rosidl_generator_cpp/resource/rosidl_generator_cpp__visibility_control.hpp.in'
+      - '{ros_root}/share/rosidl_typesupport_introspection_c/resource/rosidl_typesupport_introspection_c__visibility_control.h.in'
+      - '{ros_root}/share/rosidl_typesupport_fastrtps_c/resource/rosidl_typesupport_fastrtps_c__visibility_control.h.in'
+      - '{ros_root}/share/rosidl_typesupport_fastrtps_cpp/resource/rosidl_typesupport_fastrtps_cpp__visibility_control.h.in'
+      - '{ros_root}/share/rosidl_generator_py/resource/_idl.py.em'
+      - '{ros_root}/share/rosidl_generator_py/resource/_idl_support.c.em'
+      - '{ros_root}/share/rosidl_generator_py/resource/_msg.py.em'
+      - '{ros_root}/share/rosidl_generator_py/resource/_msg_support.c.em'
+      - '{ros_root}/share/rosidl_generator_py/resource/_msg_pkg_typesupport_entry_point.c.em'
+    outputs:
+      - share/livox_ros_driver2/cmake/rosidl_cmake-extras.cmake
+      - share/livox_ros_driver2/cmake/livox_ros_driver2Config-version.cmake
+      - include/livox_ros_driver2/msg/rosidl_generator_c__visibility_control.h
+      - include/livox_ros_driver2/msg/rosidl_generator_cpp__visibility_control.hpp
+      - include/livox_ros_driver2/msg/rosidl_typesupport_introspection_c__visibility_control.h
+      - include/livox_ros_driver2/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+      - include/livox_ros_driver2/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+      - include/livox_ros_driver2/msg/custom_msg.h
+      - include/livox_ros_driver2/msg/custom_msg.hpp
+      - include/livox_ros_driver2/msg/detail/custom_msg__functions.h
+      - include/livox_ros_driver2/msg/detail/custom_msg__struct.h
+      - include/livox_ros_driver2/msg/detail/custom_msg__type_support.h
+      - include/livox_ros_driver2/msg/detail/custom_msg__builder.hpp
+      - include/livox_ros_driver2/msg/detail/custom_msg__struct.hpp
+      - include/livox_ros_driver2/msg/detail/custom_msg__traits.hpp
+      - include/livox_ros_driver2/msg/detail/custom_msg__type_support.hpp
+      - include/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_introspection_c.h
+      - include/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_introspection_cpp.hpp
+      - include/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_fastrtps_c.h
+      - include/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_fastrtps_cpp.hpp
+      - include/livox_ros_driver2/msg/custom_point.h
+      - include/livox_ros_driver2/msg/custom_point.hpp
+      - include/livox_ros_driver2/msg/detail/custom_point__functions.h
+      - include/livox_ros_driver2/msg/detail/custom_point__struct.h
+      - include/livox_ros_driver2/msg/detail/custom_point__type_support.h
+      - include/livox_ros_driver2/msg/detail/custom_point__builder.hpp
+      - include/livox_ros_driver2/msg/detail/custom_point__struct.hpp
+      - include/livox_ros_driver2/msg/detail/custom_point__traits.hpp
+      - include/livox_ros_driver2/msg/detail/custom_point__type_support.hpp
+      - include/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_introspection_c.h
+      - include/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_introspection_cpp.hpp
+      - include/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_fastrtps_c.h
+      - include/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_fastrtps_cpp.hpp
+      - src/rosidl_generator_c/msg/detail/custom_msg__description.c
+      - src/rosidl_generator_c/msg/detail/custom_msg__functions.c
+      - src/rosidl_generator_c/msg/detail/custom_msg__type_support.c
+      - src/rosidl_generator_c/msg/detail/custom_point__description.c
+      - src/rosidl_generator_c/msg/detail/custom_point__functions.c
+      - src/rosidl_generator_c/msg/detail/custom_point__type_support.c
+      - src/rosidl_typesupport_introspection_c/msg/detail/custom_msg__type_support.c
+      - src/rosidl_typesupport_introspection_c/msg/detail/custom_point__type_support.c
+      - src/rosidl_typesupport_introspection_cpp/msg/detail/custom_msg__type_support.cpp
+      - src/rosidl_typesupport_introspection_cpp/msg/detail/custom_point__type_support.cpp
+      - src/rosidl_typesupport_fastrtps_c/msg/detail/custom_msg__type_support_c.cpp
+      - src/rosidl_typesupport_fastrtps_c/msg/detail/custom_point__type_support_c.cpp
+      - src/rosidl_typesupport_fastrtps_cpp/msg/detail/dds_fastrtps/custom_msg__type_support.cpp
+      - src/rosidl_typesupport_fastrtps_cpp/msg/detail/dds_fastrtps/custom_point__type_support.cpp
+      - src/rosidl_typesupport_c/msg/custom_msg__type_support.cpp
+      - src/rosidl_typesupport_c/msg/custom_point__type_support.cpp
+      - src/rosidl_typesupport_cpp/msg/custom_msg__type_support.cpp
+      - src/rosidl_typesupport_cpp/msg/custom_point__type_support.cpp
+      - src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_c.c
+      - src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_fastrtps_c.c
+      - src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_introspection_c.c
+      - src/rosidl_generator_py/msg/_custom_msg_s.c
+      - src/rosidl_generator_py/msg/_custom_point_s.c
+      - python/__init__.py
+      - python/msg/__init__.py
+      - python/msg/_custom_msg.py
+      - python/msg/_custom_point.py
+      - share/livox_ros_driver2/msg/CustomMsg.idl
+      - share/livox_ros_driver2/msg/CustomMsg.json
+      - share/livox_ros_driver2/msg/CustomPoint.idl
+      - share/livox_ros_driver2/msg/CustomPoint.json
+      - share/ament_index/resource_index/packages/livox_ros_driver2
+      - share/ament_index/resource_index/rosidl_interfaces/livox_ros_driver2
+    install: true
+    install_files:
+      '@livox_msgs/share/livox_ros_driver2/cmake/rosidl_cmake-extras.cmake': share/livox_ros_driver2/cmake/rosidl_cmake-extras.cmake
+      '@livox_msgs/share/livox_ros_driver2/cmake/livox_ros_driver2Config-version.cmake': share/livox_ros_driver2/cmake/livox_ros_driver2Config-version.cmake
+      '@livox_msgs/share/livox_ros_driver2/msg/CustomMsg.idl': share/livox_ros_driver2/msg/CustomMsg.idl
+      '@livox_msgs/share/livox_ros_driver2/msg/CustomMsg.json': share/livox_ros_driver2/msg/CustomMsg.json
+      '@livox_msgs/share/livox_ros_driver2/msg/CustomPoint.idl': share/livox_ros_driver2/msg/CustomPoint.idl
+      '@livox_msgs/share/livox_ros_driver2/msg/CustomPoint.json': share/livox_ros_driver2/msg/CustomPoint.json
+      '@livox_msgs/share/ament_index/resource_index/packages/livox_ros_driver2': share/ament_index/resource_index/packages/livox_ros_driver2
+      '@livox_msgs/share/ament_index/resource_index/rosidl_interfaces/livox_ros_driver2': share/ament_index/resource_index/rosidl_interfaces/livox_ros_driver2
+      '@livox_msgs/python/__init__.py': '{python_site}/livox_ros_driver2/__init__.py'
+      '@livox_msgs/python/msg/__init__.py': '{python_site}/livox_ros_driver2/msg/__init__.py'
+      '@livox_msgs/python/msg/_custom_msg.py': '{python_site}/livox_ros_driver2/msg/_custom_msg.py'
+      '@livox_msgs/python/msg/_custom_point.py': '{python_site}/livox_ros_driver2/msg/_custom_point.py'
+      msg/CustomMsg.msg: share/livox_ros_driver2/msg/CustomMsg.msg
+      msg/CustomPoint.msg: share/livox_ros_driver2/msg/CustomPoint.msg
+      package.xml: share/livox_ros_driver2/package.xml
+      config: share/livox_ros_driver2/config
+  livox_rosidl_sdk:
+    kind: interface
+    public_include_dirs:
+      - '{ros_root}/include/fastcdr'
+    link_options:
+      - -L{ros_root}/lib
+    libraries:
+      - fastcdr
+    ament_packages:
+      std_msgs:
+        - std_msgs__rosidl_generator_c
+        - std_msgs__rosidl_typesupport_introspection_c
+        - std_msgs__rosidl_typesupport_introspection_cpp
+        - std_msgs__rosidl_typesupport_fastrtps_c
+        - std_msgs__rosidl_typesupport_fastrtps_cpp
+        - std_msgs__rosidl_typesupport_c
+        - std_msgs__rosidl_typesupport_cpp
+      builtin_interfaces:
+        - builtin_interfaces__rosidl_generator_c
+        - builtin_interfaces__rosidl_typesupport_introspection_c
+        - builtin_interfaces__rosidl_typesupport_introspection_cpp
+        - builtin_interfaces__rosidl_typesupport_fastrtps_c
+        - builtin_interfaces__rosidl_typesupport_fastrtps_cpp
+        - builtin_interfaces__rosidl_typesupport_c
+        - builtin_interfaces__rosidl_typesupport_cpp
+      rcutils:
+        - rcutils
+      rcpputils:
+        - rcpputils
+      rmw:
+        - rmw
+      rosidl_runtime_c:
+        - rosidl_runtime_c
+      rosidl_dynamic_typesupport:
+        - rosidl_dynamic_typesupport
+      rosidl_typesupport_introspection_c:
+        - rosidl_typesupport_introspection_c
+      rosidl_typesupport_introspection_cpp:
+        - rosidl_typesupport_introspection_cpp
+      rosidl_typesupport_fastrtps_c:
+        - rosidl_typesupport_fastrtps_c
+      rosidl_typesupport_fastrtps_cpp:
+        - rosidl_typesupport_fastrtps_cpp
+      rosidl_typesupport_c:
+        - rosidl_typesupport_c
+      rosidl_typesupport_cpp:
+        - rosidl_typesupport_cpp
+      rosidl_runtime_cpp: []
+      rosidl_typesupport_interface: []
+  livox_ros_driver2__rosidl_generator_c:
+    kind: shared
+    std: gnu11
+    deps:
+      - livox_rosidl_sdk
+    defines:
+      - ROSIDL_GENERATOR_C_BUILDING_DLL_livox_ros_driver2
+    sources:
+      - '@livox_msgs/src/rosidl_generator_c/msg/detail/custom_msg__description.c'
+      - '@livox_msgs/src/rosidl_generator_c/msg/detail/custom_msg__functions.c'
+      - '@livox_msgs/src/rosidl_generator_c/msg/detail/custom_msg__type_support.c'
+      - '@livox_msgs/src/rosidl_generator_c/msg/detail/custom_point__description.c'
+      - '@livox_msgs/src/rosidl_generator_c/msg/detail/custom_point__functions.c'
+      - '@livox_msgs/src/rosidl_generator_c/msg/detail/custom_point__type_support.c'
+    install_deps:
+      - livox_rosidl_package
+    install: true
+    public_include_dirs:
+      - '@livox_msgs/include'
+    header_exports:
+      '@livox_msgs/include': .
+  livox_ros_driver2__rosidl_typesupport_introspection_c:
+    kind: shared
+    std: gnu11
+    deps:
+      - livox_ros_driver2__rosidl_generator_c
+    defines:
+      - ROSIDL_TYPESUPPORT_INTROSPECTION_C_BUILDING_DLL_livox_ros_driver2
+    sources:
+      - '@livox_msgs/src/rosidl_typesupport_introspection_c/msg/detail/custom_msg__type_support.c'
+      - '@livox_msgs/src/rosidl_typesupport_introspection_c/msg/detail/custom_point__type_support.c'
+    install: true
+  livox_ros_driver2__rosidl_typesupport_introspection_cpp:
+    kind: shared
+    std: gnu++17
+    deps:
+      - livox_ros_driver2__rosidl_generator_c
+    defines:
+      - ROSIDL_TYPESUPPORT_INTROSPECTION_CPP_BUILDING_DLL
+    sources:
+      - '@livox_msgs/src/rosidl_typesupport_introspection_cpp/msg/detail/custom_msg__type_support.cpp'
+      - '@livox_msgs/src/rosidl_typesupport_introspection_cpp/msg/detail/custom_point__type_support.cpp'
+    install: true
+  livox_ros_driver2__rosidl_typesupport_fastrtps_c:
+    kind: shared
+    std: gnu++17
+    deps:
+      - livox_ros_driver2__rosidl_generator_c
+    defines:
+      - FASTCDR_DYN_LINK
+      - ROSIDL_TYPESUPPORT_FASTRTPS_C_BUILDING_DLL_livox_ros_driver2
+    sources:
+      - '@livox_msgs/src/rosidl_typesupport_fastrtps_c/msg/detail/custom_msg__type_support_c.cpp'
+      - '@livox_msgs/src/rosidl_typesupport_fastrtps_c/msg/detail/custom_point__type_support_c.cpp'
+    install: true
+  livox_ros_driver2__rosidl_typesupport_fastrtps_cpp:
+    kind: shared
+    std: gnu++17
+    deps:
+      - livox_ros_driver2__rosidl_generator_c
+    defines:
+      - FASTCDR_DYN_LINK
+      - ROSIDL_TYPESUPPORT_FASTRTPS_CPP_BUILDING_DLL_livox_ros_driver2
+    sources:
+      - '@livox_msgs/src/rosidl_typesupport_fastrtps_cpp/msg/detail/dds_fastrtps/custom_msg__type_support.cpp'
+      - '@livox_msgs/src/rosidl_typesupport_fastrtps_cpp/msg/detail/dds_fastrtps/custom_point__type_support.cpp'
+    install: true
+  livox_ros_driver2__rosidl_typesupport_c:
+    kind: shared
+    std: gnu++17
+    deps:
+      - livox_ros_driver2__rosidl_generator_c
+      - livox_ros_driver2__rosidl_typesupport_introspection_c
+      - livox_ros_driver2__rosidl_typesupport_fastrtps_c
+    defines:
+      - ROSIDL_GENERATOR_C_BUILDING_DLL_livox_ros_driver2
+    sources:
+      - '@livox_msgs/src/rosidl_typesupport_c/msg/custom_msg__type_support.cpp'
+      - '@livox_msgs/src/rosidl_typesupport_c/msg/custom_point__type_support.cpp'
+    install: true
+  livox_ros_driver2__rosidl_typesupport_cpp:
+    kind: shared
+    std: gnu++17
+    deps:
+      - livox_ros_driver2__rosidl_generator_c
+      - livox_ros_driver2__rosidl_typesupport_introspection_cpp
+      - livox_ros_driver2__rosidl_typesupport_fastrtps_cpp
+    defines:
+      - ROSIDL_TYPESUPPORT_CPP_BUILDING_DLL
+    sources:
+      - '@livox_msgs/src/rosidl_typesupport_cpp/msg/custom_msg__type_support.cpp'
+      - '@livox_msgs/src/rosidl_typesupport_cpp/msg/custom_point__type_support.cpp'
+    install: true
+  livox_interfaces2__rosidl_generator_py:
+    kind: shared
+    std: gnu11
+    deps:
+      - livox_ros_driver2__rosidl_generator_c
+    sources:
+      - '@livox_msgs/src/rosidl_generator_py/msg/_custom_msg_s.c'
+      - '@livox_msgs/src/rosidl_generator_py/msg/_custom_point_s.c'
+    pkg_config:
+      - python3-embed
+      - numpy
+    install: true
+    ament_packages:
+      std_msgs:
+        - std_msgs__rosidl_generator_py
+      builtin_interfaces:
+        - builtin_interfaces__rosidl_generator_py
+  livox_ros_driver2_s__rosidl_typesupport_c:
+    kind: shared
+    std: gnu11
+    deps:
+      - livox_ros_driver2__rosidl_typesupport_c
+      - livox_interfaces2__rosidl_generator_py
+    sources:
+      - '@livox_msgs/src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_c.c'
+    artifact_name: '{python_site}/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_c.so'
+    install: true
+  livox_ros_driver2_s__rosidl_typesupport_fastrtps_c:
+    kind: shared
+    std: gnu11
+    deps:
+      - livox_ros_driver2__rosidl_typesupport_fastrtps_c
+      - livox_ros_driver2__rosidl_typesupport_c
+      - livox_interfaces2__rosidl_generator_py
+    sources:
+      - '@livox_msgs/src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_fastrtps_c.c'
+    artifact_name: '{python_site}/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_fastrtps_c.so'
+    install: true
+  livox_ros_driver2_s__rosidl_typesupport_introspection_c:
+    kind: shared
+    std: gnu11
+    deps:
+      - livox_ros_driver2__rosidl_typesupport_introspection_c
+      - livox_ros_driver2__rosidl_typesupport_c
+      - livox_interfaces2__rosidl_generator_py
+    sources:
+      - '@livox_msgs/src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_introspection_c.c'
+    artifact_name: '{python_site}/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_introspection_c.so'
+    install: true
+  livox_ros_driver2_python_typesupport:
+    kind: interface
+    deps:
+      - livox_ros_driver2_s__rosidl_typesupport_c
+      - livox_ros_driver2_s__rosidl_typesupport_fastrtps_c
+      - livox_ros_driver2_s__rosidl_typesupport_introspection_c
+  livox_node_entry:
+    kind: generate
+    command:
+      - /usr/bin/python3
+      - tools/generate_driver_entry.py
+      - '{ros_root}/share/rclcpp_components/node_main.cpp.in'
+      - '{out}'
+    inputs:
+      - tools/generate_driver_entry.py
+      - '{ros_root}/share/rclcpp_components/node_main.cpp.in'
+    outputs:
+      - livox_ros_driver2_node.cpp
+      - share/ament_index/resource_index/rclcpp_components/livox_ros_driver2
+    install: true
+    install_files:
+      '@livox_node_entry/share/ament_index/resource_index/rclcpp_components/livox_ros_driver2': share/ament_index/resource_index/rclcpp_components/livox_ros_driver2
+  livox_ros_components:
+    kind: interface
+    libraries:
+      - console_bridge
+    ament_packages:
+      rclcpp:
+        - rclcpp
+      rcl:
+        - rcl
+      tracetools:
+        - tracetools
+      class_loader:
+        - class_loader
+      rclcpp_components: []
+      rcutils:
+        - rcutils
+      rcpputils:
+        - rcpputils
+      rmw:
+        - rmw
+      sensor_msgs:
+        - sensor_msgs__rosidl_typesupport_cpp
+      builtin_interfaces: []
+      geometry_msgs: []
+      composition_interfaces: []
+      libstatistics_collector: []
+      rcl_interfaces: []
+      service_msgs: []
+      rcl_logging_interface: []
+      rcl_yaml_param_parser: []
+      type_description_interfaces: []
+      statistics_msgs: []
+      rosgraph_msgs: []
+      rosidl_runtime_c: []
+      rosidl_runtime_cpp: []
+      rosidl_typesupport_interface: []
+      rosidl_typesupport_cpp: []
+      rosidl_typesupport_fastrtps_cpp: []
+      rosidl_typesupport_fastrtps_c: []
+      rosidl_typesupport_introspection_cpp: []
+      rosidl_typesupport_introspection_c: []
+      rosidl_dynamic_typesupport: []
+  livox_ros_driver2:
+    kind: shared
+    std: gnu++17
+    sources:
+      - src/livox_ros_driver2.cpp
+      - src/lddc.cpp
+      - src/driver_node.cpp
+      - src/lds.cpp
+      - src/lds_lidar.cpp
+      - src/comm/comm.cpp
+      - src/comm/ldq.cpp
+      - src/comm/semaphore.cpp
+      - src/comm/lidar_imu_data_queue.cpp
+      - src/comm/cache_index.cpp
+      - src/comm/pub_handler.cpp
+      - src/parse_cfg_file/parse_cfg_file.cpp
+      - src/parse_cfg_file/parse_livox_lidar_cfg.cpp
+      - src/call_back/lidar_common_callback.cpp
+      - src/call_back/livox_lidar_callback.cpp
+    deps:
+      - livox_lidar_sdk_shared
+      - livox_ros_components
+      - livox_ros_driver2__rosidl_typesupport_cpp
+      - livox_ros_driver2__rosidl_typesupport_c
+    public_include_dirs:
+      - include
+    include_dirs:
+      - src
+      - ../Livox-SDK2/3rdparty
+    compile_options:
+      - -Wall
+      - -Wextra
+      - -Wpedantic
+      - -Wno-unused-parameter
+    install: true
+    header_exports:
+      include: .
+    cmake:
+      directory: share/livox_ros_driver2/cmake
+      config: cmake/livoxDriverExports.cmake.in
+      exports:
+        livoxDriverTargets.cmake:
+          livox_ros_driver2::driver:
+            target: livox_ros_driver2
+            include_dirs:
+              - include
+            link_libraries:
+              - livox_ros_driver2::livox_interfaces2__rosidl_typesupport_cpp
+              - livox_sdk2::shared
+              - rclcpp::rclcpp
+              - rclcpp_components::component
+              - sensor_msgs::sensor_msgs__rosidl_typesupport_cpp
+  livox_ros_driver2_node:
+    kind: exe
+    std: gnu++17
+    deps:
+      - livox_ros_driver2
+      - livox_ros_components
+    sources:
+      - '@livox_node_entry/livox_ros_driver2_node.cpp'
+    runtime_dir: lib/livox_ros_driver2
+    install: true
+  livox_rosidl_package:
+    kind: interface
+    deps:
+      - livox_ros_driver2__rosidl_typesupport_c
+      - livox_ros_driver2__rosidl_typesupport_cpp
+      - livox_ros_driver2_python_typesupport
+    install: true
+    cmake:
+      directory: share/livox_ros_driver2/cmake
+      config: cmake/livox_ros_driver2Config.cmake.in
+      exports:
+        livox_ros_driver2Targets.cmake:
+          livox_ros_driver2::livox_interfaces2__rosidl_generator_c:
+            target: livox_ros_driver2__rosidl_generator_c
+            include_dirs:
+              - include
+            link_libraries:
+              - std_msgs::std_msgs__rosidl_generator_c
+              - builtin_interfaces::builtin_interfaces__rosidl_generator_c
+              - rosidl_runtime_c::rosidl_runtime_c
+              - rosidl_typesupport_interface::rosidl_typesupport_interface
+              - rcutils::rcutils
+          livox_ros_driver2::livox_interfaces2__rosidl_generator_cpp:
+            compile_features:
+              - cxx_std_17
+            include_dirs:
+              - include
+            link_libraries:
+              - std_msgs::std_msgs__rosidl_generator_cpp
+              - builtin_interfaces::builtin_interfaces__rosidl_generator_cpp
+              - rosidl_runtime_cpp::rosidl_runtime_cpp
+          livox_ros_driver2::livox_interfaces2__rosidl_typesupport_introspection_c:
+            target: livox_ros_driver2__rosidl_typesupport_introspection_c
+            link_libraries:
+              - livox_ros_driver2::livox_interfaces2__rosidl_generator_c
+              - rosidl_runtime_c::rosidl_runtime_c
+              - rosidl_typesupport_interface::rosidl_typesupport_interface
+              - rosidl_typesupport_introspection_c::rosidl_typesupport_introspection_c
+              - std_msgs::std_msgs__rosidl_typesupport_introspection_c
+              - builtin_interfaces::builtin_interfaces__rosidl_typesupport_introspection_c
+          livox_ros_driver2::livox_interfaces2__rosidl_typesupport_introspection_cpp:
+            target: livox_ros_driver2__rosidl_typesupport_introspection_cpp
+            link_libraries:
+              - livox_ros_driver2::livox_interfaces2__rosidl_generator_c
+              - livox_ros_driver2::livox_interfaces2__rosidl_generator_cpp
+              - rosidl_runtime_c::rosidl_runtime_c
+              - rosidl_typesupport_interface::rosidl_typesupport_interface
+              - rosidl_typesupport_introspection_cpp::rosidl_typesupport_introspection_cpp
+              - std_msgs::std_msgs__rosidl_typesupport_introspection_cpp
+              - builtin_interfaces::builtin_interfaces__rosidl_typesupport_introspection_cpp
+          livox_ros_driver2::livox_interfaces2__rosidl_typesupport_fastrtps_c:
+            target: livox_ros_driver2__rosidl_typesupport_fastrtps_c
+            link_libraries:
+              - livox_ros_driver2::livox_interfaces2__rosidl_generator_c
+              - rosidl_runtime_c::rosidl_runtime_c
+              - rosidl_typesupport_interface::rosidl_typesupport_interface
+              - rosidl_runtime_cpp::rosidl_runtime_cpp
+              - fastcdr
+              - rosidl_typesupport_fastrtps_cpp::rosidl_typesupport_fastrtps_cpp
+              - rosidl_typesupport_fastrtps_c::rosidl_typesupport_fastrtps_c
+              - std_msgs::std_msgs__rosidl_typesupport_fastrtps_c
+              - builtin_interfaces::builtin_interfaces__rosidl_typesupport_fastrtps_c
+          livox_ros_driver2::livox_interfaces2__rosidl_typesupport_fastrtps_cpp:
+            target: livox_ros_driver2__rosidl_typesupport_fastrtps_cpp
+            link_libraries:
+              - livox_ros_driver2::livox_interfaces2__rosidl_generator_c
+              - livox_ros_driver2::livox_interfaces2__rosidl_generator_cpp
+              - rosidl_runtime_c::rosidl_runtime_c
+              - rosidl_typesupport_interface::rosidl_typesupport_interface
+              - rosidl_runtime_cpp::rosidl_runtime_cpp
+              - fastcdr
+              - rosidl_typesupport_fastrtps_cpp::rosidl_typesupport_fastrtps_cpp
+              - rmw::rmw
+              - std_msgs::std_msgs__rosidl_typesupport_fastrtps_cpp
+              - builtin_interfaces::builtin_interfaces__rosidl_typesupport_fastrtps_cpp
+          livox_ros_driver2::livox_interfaces2__rosidl_typesupport_c:
+            target: livox_ros_driver2__rosidl_typesupport_c
+            link_libraries:
+              - livox_ros_driver2::livox_interfaces2__rosidl_generator_c
+              - std_msgs::std_msgs__rosidl_typesupport_c
+              - builtin_interfaces::builtin_interfaces__rosidl_typesupport_c
+          livox_ros_driver2::livox_interfaces2__rosidl_typesupport_cpp:
+            target: livox_ros_driver2__rosidl_typesupport_cpp
+            link_libraries:
+              - livox_ros_driver2::livox_interfaces2__rosidl_generator_c
+              - livox_ros_driver2::livox_interfaces2__rosidl_generator_cpp
+              - std_msgs::std_msgs__rosidl_typesupport_cpp
+              - builtin_interfaces::builtin_interfaces__rosidl_typesupport_cpp
+          livox_ros_driver2::livox_interfaces2__rosidl_generator_py:
+            target: livox_interfaces2__rosidl_generator_py
