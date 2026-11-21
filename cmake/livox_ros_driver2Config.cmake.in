@@ -1,6 +1,10 @@
 @PACKAGE_INIT@
 include("${CMAKE_CURRENT_LIST_DIR}/rosidl_cmake-extras.cmake")
 include(CMakeFindDependencyMacro)
+list(APPEND livox_ros_driver2_DEPENDENCIES
+  fastrtps_cmake_module rosidl_typesupport_c rosidl_typesupport_cpp)
+list(APPEND livox_ros_driver2_RECURSIVE_DEPENDENCIES
+  fastrtps_cmake_module rosidl_typesupport_c rosidl_typesupport_cpp)
 foreach(_rc_rosidl_dependency IN LISTS livox_ros_driver2_DEPENDENCIES)
   find_dependency(${_rc_rosidl_dependency})
   list(APPEND livox_ros_driver2_RECURSIVE_DEPENDENCIES
@@ -8,5 +12,6 @@ foreach(_rc_rosidl_dependency IN LISTS livox_ros_driver2_DEPENDENCIES)
 endforeach()
 list(REMOVE_DUPLICATES livox_ros_driver2_RECURSIVE_DEPENDENCIES)
 include("${CMAKE_CURRENT_LIST_DIR}/livox_ros_driver2Targets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/livoxDriverExports.cmake" OPTIONAL)
 set(livox_ros_driver2_FOUND_AMENT_PACKAGE TRUE)
 check_required_components(livox_ros_driver2)

@@ -420,6 +420,22 @@ install = true
 [targets.livox_ros_driver2.header_exports]
 "include" = "."
 
+
+[targets.livox_ros_driver2.cmake]
+directory = "share/livox_ros_driver2/cmake"
+config = "cmake/livoxDriverExports.cmake.in"
+
+[targets.livox_ros_driver2.cmake.exports."livoxDriverTargets.cmake"."livox_ros_driver2::driver"]
+target = "livox_ros_driver2"
+include_dirs = ["include"]
+link_libraries = [
+  "livox_ros_driver2::livox_interfaces2__rosidl_typesupport_cpp",
+  "livox_sdk2::shared",
+  "rclcpp::rclcpp",
+  "rclcpp_components::component",
+  "sensor_msgs::sensor_msgs__rosidl_typesupport_cpp",
+]
+
 [targets.livox_ros_driver2_node]
 kind = "exe"
 std = "gnu++17"
