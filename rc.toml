@@ -1,6 +1,6 @@
 ros = { distro = "jazzy" }
 
-default = ["livox_ros_driver2_node"]
+default = ["livox_ros_driver2_node", "livox_ros_driver2_s__rosidl_typesupport_c"]
 
 [targets.livox_msgs]
 kind = "generate"
@@ -41,6 +41,7 @@ inputs = [
   "{ros_root}/share/rosidl_typesupport_fastrtps_cpp/package.xml",
   "{ros_root}/share/rosidl_typesupport_c/package.xml",
   "{ros_root}/share/rosidl_typesupport_cpp/package.xml",
+  "{ros_root}/share/rosidl_generator_py/package.xml",
   "{ros_root}/lib/rosidl_generator_type_description/rosidl_generator_type_description",
   "{ros_root}/lib/rosidl_generator_c/rosidl_generator_c",
   "{ros_root}/lib/rosidl_generator_cpp/rosidl_generator_cpp",
@@ -50,11 +51,17 @@ inputs = [
   "{ros_root}/lib/rosidl_typesupport_fastrtps_cpp/rosidl_typesupport_fastrtps_cpp",
   "{ros_root}/lib/rosidl_typesupport_c/rosidl_typesupport_c",
   "{ros_root}/lib/rosidl_typesupport_cpp/rosidl_typesupport_cpp",
+  "{ros_root}/lib/rosidl_generator_py/rosidl_generator_py",
   "{ros_root}/share/rosidl_generator_c/resource/rosidl_generator_c__visibility_control.h.in",
   "{ros_root}/share/rosidl_generator_cpp/resource/rosidl_generator_cpp__visibility_control.hpp.in",
   "{ros_root}/share/rosidl_typesupport_introspection_c/resource/rosidl_typesupport_introspection_c__visibility_control.h.in",
   "{ros_root}/share/rosidl_typesupport_fastrtps_c/resource/rosidl_typesupport_fastrtps_c__visibility_control.h.in",
   "{ros_root}/share/rosidl_typesupport_fastrtps_cpp/resource/rosidl_typesupport_fastrtps_cpp__visibility_control.h.in",
+  "{ros_root}/share/rosidl_generator_py/resource/_idl.py.em",
+  "{ros_root}/share/rosidl_generator_py/resource/_idl_support.c.em",
+  "{ros_root}/share/rosidl_generator_py/resource/_msg.py.em",
+  "{ros_root}/share/rosidl_generator_py/resource/_msg_support.c.em",
+  "{ros_root}/share/rosidl_generator_py/resource/_msg_pkg_typesupport_entry_point.c.em",
 ]
 outputs = [
   "include/livox_ros_driver2/msg/rosidl_generator_c__visibility_control.h",
@@ -106,6 +113,13 @@ outputs = [
   "src/rosidl_typesupport_c/msg/custom_point__type_support.cpp",
   "src/rosidl_typesupport_cpp/msg/custom_msg__type_support.cpp",
   "src/rosidl_typesupport_cpp/msg/custom_point__type_support.cpp",
+  "src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_c.c",
+  "src/rosidl_generator_py/msg/_custom_msg_s.c",
+  "src/rosidl_generator_py/msg/_custom_point_s.c",
+  "python/__init__.py",
+  "python/msg/__init__.py",
+  "python/msg/_custom_msg.py",
+  "python/msg/_custom_point.py",
   "share/livox_ros_driver2/msg/CustomMsg.idl",
   "share/livox_ros_driver2/msg/CustomMsg.json",
   "share/livox_ros_driver2/msg/CustomPoint.idl",
@@ -121,6 +135,10 @@ install = true
 "@livox_msgs/share/livox_ros_driver2/msg/CustomPoint.json" = "share/livox_ros_driver2/msg/CustomPoint.json"
 "@livox_msgs/share/ament_index/resource_index/packages/livox_ros_driver2" = "share/ament_index/resource_index/packages/livox_ros_driver2"
 "@livox_msgs/share/ament_index/resource_index/rosidl_interfaces/livox_ros_driver2" = "share/ament_index/resource_index/rosidl_interfaces/livox_ros_driver2"
+"@livox_msgs/python/__init__.py" = "{python_site}/livox_ros_driver2/__init__.py"
+"@livox_msgs/python/msg/__init__.py" = "{python_site}/livox_ros_driver2/msg/__init__.py"
+"@livox_msgs/python/msg/_custom_msg.py" = "{python_site}/livox_ros_driver2/msg/_custom_msg.py"
+"@livox_msgs/python/msg/_custom_point.py" = "{python_site}/livox_ros_driver2/msg/_custom_point.py"
 "msg/CustomMsg.msg" = "share/livox_ros_driver2/msg/CustomMsg.msg"
 "msg/CustomPoint.msg" = "share/livox_ros_driver2/msg/CustomPoint.msg"
 "package.xml" = "share/livox_ros_driver2/package.xml"
@@ -273,6 +291,29 @@ sources = [
   "@livox_msgs/src/rosidl_typesupport_cpp/msg/custom_point__type_support.cpp",
 ]
 install = true
+
+[targets.livox_ros_driver2_s__rosidl_typesupport_c]
+kind = "shared"
+std = "gnu11"
+deps = [
+  "livox_ros_driver2__rosidl_typesupport_c",
+]
+sources = [
+  "@livox_msgs/src/rosidl_generator_py/_livox_ros_driver2_s.ep.rosidl_typesupport_c.c",
+  "@livox_msgs/src/rosidl_generator_py/msg/_custom_msg_s.c",
+  "@livox_msgs/src/rosidl_generator_py/msg/_custom_point_s.c",
+]
+include_dirs = [
+  "@livox_msgs/include",
+]
+pkg_config = ["python3-embed", "numpy"]
+artifact_name = "{python_site}/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_c.so"
+install = true
+[targets.livox_ros_driver2_s__rosidl_typesupport_c.ament_packages]
+"std_msgs" = ["std_msgs__rosidl_generator_py"]
+"builtin_interfaces" = ["builtin_interfaces__rosidl_generator_py"]
+"rosidl_runtime_c" = ["rosidl_runtime_c"]
+"rosidl_typesupport_c" = ["rosidl_typesupport_c"]
 
 [targets.livox_node_entry]
 kind = "generate"
